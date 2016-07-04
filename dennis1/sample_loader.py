@@ -3,6 +3,7 @@ import numpy as np
 import os  #for directories
 import cPickle, gzip #for storing our data
 import pickle
+#asdf
 #They recommended just doing this so we get a spectrogram instead of using mfccs
 training_data_dir = "training_data/"
 validation_data_dir = None
