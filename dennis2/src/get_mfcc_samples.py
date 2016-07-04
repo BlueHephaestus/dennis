@@ -2,7 +2,7 @@ import librosa
 import scipy.io.wavfile as wav
 import numpy as np
 import os
-import cPickle, gzip #for storing our data
+import cPickle, gzip #for storing our data 
 import pickle
 
 mfcc_data_dir = "../data/mfcc_samples.pkl.gz"
