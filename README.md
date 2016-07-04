@@ -26,9 +26,9 @@ I will likely start Mk. 3 after I finish adding the following:
 
 1. Momentum based Stochastic Gradient Descent
 2. Automatic scheduling of learning rates
---*And many other things that i'd like to automatically schedule to see how they impact things
+  *And many other things that i'd like to automatically schedule to see how they impact things
 3. Expand the MFCC data as well
---*Already did this a bit with the raw samples, increasing speed to 1.1 and decreasing to 0.9, but actually yielded far worse results in all sections.
+  *Already did this a bit with the raw samples, increasing speed to 1.1 and decreasing to 0.9, but actually yielded far worse results in all sections.
 4. More improvements to graphing outputs
 5. Possibly more automation for finding Hyper Parameters
 6. More optimization techniques possibly
