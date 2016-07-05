@@ -152,12 +152,13 @@ class Network(object):
         self.output = self.layers[-1].output
         self.output_dropout = self.layers[-1].output_dropout
 
-    def output_config(self, output_filename, training_data_subsections, early_stopping, output_training_cost, output_training_accuracy, output_validation_accuracy, output_test_accuracy, print_results, config_index, config_count, run_index, run_count, output_types):
+    def output_config(self, output_filename, training_data_subsections, early_stopping, automatic_scheduling, output_training_cost, output_training_accuracy, output_validation_accuracy, output_test_accuracy, print_results, config_index, config_count, run_index, run_count, output_types):
         
         #Set all our things for graph output
         self.output_filename=output_filename
         self.training_data_subsections=training_data_subsections,
         self.early_stopping=early_stopping
+        self.automatic_scheduling=automatic_scheduling,
         self.output_training_cost=output_training_cost
         self.output_training_accuracy=output_training_accuracy
         self.output_validation_accuracy=output_validation_accuracy
@@ -171,7 +172,8 @@ class Network(object):
 
 
     def SGD(self, output_dict, training_data, epochs, mini_batch_size, eta,
-            validation_data, test_data, lmbda=0.0, momentum_coefficient=0.0):
+            validation_data, test_data, lmbda=0.0, momentum_coefficient=0.0,
+            scheduler_check_interval=10, param_decrease_rate=10):#Initialize early stopping stuff to reasonable defaults
         """Train the network using mini-batch stochastic gradient descent."""
         training_x, training_y = training_data
         validation_x, validation_y = validation_data
@@ -265,6 +267,13 @@ class Network(object):
         # Do the actual training
         best_training_accuracy = 0.0
         best_validation_accuracy = 0.0
+
+        if self.early_stopping and self.output_training_cost:
+            scheduler_results = []
+            #Arange so we can do our vector multiplication
+            scheduler_x = np.arange(1, scheduler_check_interval+1)
+            param_stop_threshold = eta * param_decrease_rate**-6
+
         for epoch in xrange(epochs):
             for minibatch_index in xrange(num_training_batches):
                 cost_ij = train_mb(minibatch_index)
@@ -304,6 +313,35 @@ class Network(object):
                     print "\tValidation Accuracy: %f%%" % (validation_accuracy)
                 if self.output_test_accuracy:
                     print "\tTest Accuracy: %f%%" % (test_accuracy)
+
+            if (self.early_stopping or self.automatic_scheduling) and self.output_training_cost:
+                #This is where we change things according to the parameter we want to schedule, since I think it would take a hell of a lot to make it automatic for scheduler and param
+                scheduler_results.append(training_cost)
+                if len(scheduler_results) >= scheduler_check_interval:
+                    #Do our checks on the last check_interval number of accuracy results(which is the size of the array)
+                    #Checks = 
+                        #get average slope of interval
+                            #(interval * sigma(x*y) - sigma(x)*sigma(y)) / (interval * sigma(x**2) - (sigma(x))**2)
+                            #where x is each # in our interval 1, 2, 3... interval
+                            # and y is each of our accuracies
+                    scheduler_avg_slope = (scheduler_check_interval*1.0*sum(scheduler_x*scheduler_results) - sum(scheduler_x) * 1.0 * sum(scheduler_results))/(scheduler_check_interval*sum([x**2 for x in scheduler_x])*1.0 - (sum(scheduler_x))**2)
+                    if scheduler_avg_slope > 0.1:
+                        #This way we keep decreasing until we reach our threshold, at which point we either end this execution(early stopping) or end the decrease of our automatic scheduling
+                        if eta <= param_stop_threshold:
+                            if self.early_stopping:
+                                print "Early stopped with low threshold"
+                                break
+                        else:
+                            eta /= param_decrease_rate
+                            print "Reducing eta by factor of {0} to {1}".format(param_decrease_rate, eta)
+
+                        #If we decrease the param, we reset the interval by clearing our scheduler's results
+                        scheduler_results = []
+                    else:
+                        #remove the first element
+                        scheduler_results.pop(0)
+            '''
+            '''
 
         #Using our +1s for pretty print progress
         print "Config %i/%i, Run %i/%i Completed." % (self.config_index+1, self.config_count, self.run_index+1, self.run_count)

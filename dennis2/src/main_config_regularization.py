@@ -14,8 +14,8 @@ training_data, validation_data, test_data = dennis2.load_data_shared(filename=".
 #So we have similarities to use for our graphing / these need to be the same for it to be more or less reasonable
 #Basically these are our global things
 output_types = 4#DON'T FORGET TO UPDATE THIS WITH THE OTHERS
-run_count = 4
-epochs = 500
+run_count = 8
+epochs = 1000
 training_data_subsections=None#Won't be needing this for our tiny dataset!
 early_stopping=False
 
@@ -26,9 +26,11 @@ output_test_accuracy=True
 
 output_title="regularization comparisons"
 output_filename="regularization_comparisons"
+output_type_names = ["Training Cost", "Training % Accuracy", "Validation % Accuracy", "Test % Accuracy"]
 print_results = False
 update_output = True
 graph_output = True
+print_output = True
 #Will by default subplot the output types, will make config*outputs if that option is specified as well.
 subplot_seperate_configs = False
 
@@ -43,21 +45,21 @@ configs = [
                 FullyConnectedLayer(n_in=100, n_out=30),
                 FullyConnectedLayer(n_in=30, n_out=10),
                 SoftmaxLayer(n_in=10, n_out=2)], 10), 10,
-                .1, 0.0, 0.01
+                .1, 0.0, 0.02, "lambda=0.02"
             ],
             [Network([
                 FullyConnectedLayer(n_in=38*38, n_out=100),
                 FullyConnectedLayer(n_in=100, n_out=30),
                 FullyConnectedLayer(n_in=30, n_out=10),
                 SoftmaxLayer(n_in=10, n_out=2)], 10), 10,
-                .1, 0.0, 0.015
+                .1, 0.0, 0.025, "lambda=0.025"
             ],
             [Network([
                 FullyConnectedLayer(n_in=38*38, n_out=100),
                 FullyConnectedLayer(n_in=100, n_out=30),
                 FullyConnectedLayer(n_in=30, n_out=10),
                 SoftmaxLayer(n_in=10, n_out=2)], 10), 10,
-                .1, 0.0, 0.02
+                .1, 0.0, 0.03, "lambda=0.03"
             ]
         ]
 
@@ -133,7 +135,8 @@ if graph_output:
     f = open('{0}_output.txt'.format(output_filename), 'r')
 
     config_index = 0
-    plt.figure(1)
+    #plt.figure(1)#Unnecessary
+    plt.suptitle(output_title)
     for config in f.readlines():
         config_results = json.loads(config, object_pairs_hook=OrderedDict)#So we preserve the order of our stored json
         if training_data_subsections:
@@ -146,6 +149,7 @@ if graph_output:
                 plt.subplot(config_count, output_types, config_index*output_types+output_type+1)#number of rows, number of cols, number of subplot
             else:
                 plt.subplot(1, output_types, output_type+1)#number of rows, number of cols, number of subplot
+                plt.title(output_type_names[output_type])
                 
             for r in config_results:
                 y = []
@@ -159,11 +163,22 @@ if graph_output:
                 #The brighter the line, the later the config(argh i wish it was the other way w/e)
                 if int(r) >= run_count:
                     #Our final, average run
-                    plt.plot(x, y, c=str(config_index*1.0/config_count), lw=4.0)
+                    if len(configs[config_index]) > 5:
+                        plt.plot(x, y, c=str(config_index*1.0/config_count), lw=4.0, label=configs[config_index][5])
+                    else:
+                        plt.plot(x, y, c=str(config_index*1.0/config_count), lw=4.0)
                     #plt.plot(x, y, lw=4.0)
                 else:
                     #plt.plot(x, y, c=np.random.randn(3,1), ls='--')
                     plt.plot(x, y, c=str(config_index*1.0/config_count), ls='--')
                     #insert plt.title here for when we add our config name metadata
+        if len(configs[config_index]) > 5:
+            plt.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
         config_index+=1
+
+    '''
+    if print_output:
+        plt.savefig(output_filename + ".png", bbox_inches='tight')
+    '''
     plt.show()
+
