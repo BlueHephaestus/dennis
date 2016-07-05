@@ -14,23 +14,20 @@ training_data, validation_data, test_data = dennis2.load_data_shared(filename=".
 #So we have similarities to use for our graphing / these need to be the same for it to be more or less reasonable
 #Basically these are our global things
 output_types = 4#DON'T FORGET TO UPDATE THIS WITH THE OTHERS
-run_count = 1
-epochs = 1000
+run_count = 4
+epochs = 500
 training_data_subsections=None#Won't be needing this for our tiny dataset!
-
-#Currently too fast for these to be of much use, we might be able to use them well when we get deeper and more convolutional
-early_stopping=False
-automatic_scheduling=False
+early_stopping=False#Not implemented yet
 
 output_training_cost=True
 output_training_accuracy=True
 output_validation_accuracy=True
 output_test_accuracy=True
 
-output_title="generic comparisons"
-output_filename="generic_comparisons"
+output_title="normalized output"
+output_filename="normalized_output"
 output_type_names = ["Training Cost", "Training % Accuracy", "Validation % Accuracy", "Test % Accuracy"]
-print_results = True
+print_results = False
 update_output = True
 graph_output = True
 print_output = True
@@ -48,8 +45,22 @@ configs = [
                 FullyConnectedLayer(n_in=100, n_out=30),
                 FullyConnectedLayer(n_in=30, n_out=10),
                 SoftmaxLayer(n_in=10, n_out=2)], 10), 10,
-                .1, 0.0, 0.02, 100, 10
+                .1, 0.0, 0.0 
             ],
+            [Network([
+                FullyConnectedLayer(n_in=38*38, n_out=100),
+                FullyConnectedLayer(n_in=100, n_out=30),
+                FullyConnectedLayer(n_in=30, n_out=10),
+                SoftmaxLayer(n_in=10, n_out=2)], 10), 10,
+                .1, 0.0, 0.0
+            ],
+            [Network([
+                FullyConnectedLayer(n_in=38*38, n_out=100),
+                FullyConnectedLayer(n_in=100, n_out=30),
+                FullyConnectedLayer(n_in=30, n_out=10),
+                SoftmaxLayer(n_in=10, n_out=2)], 10), 10,
+                .1, 0.0, 0.0
+            ]
         ]
 
 config_count = len(configs)
@@ -66,7 +77,6 @@ if update_output:
                 output_filename=output_filename, 
                 training_data_subsections=training_data_subsections, 
                 early_stopping=early_stopping,
-                automatic_scheduling=automatic_scheduling,
                 output_training_cost=output_training_cost,
                 output_training_accuracy=output_training_accuracy,
                 output_validation_accuracy=output_validation_accuracy,
@@ -83,10 +93,7 @@ if update_output:
             learning_rate = config[2]
             momentum_coefficient = config[3]
             regularization_rate = config[4]
-            scheduler_check_interval = config[5]
-            param_decrease_rate = config[6]
-            output_dict = net.SGD(output_dict, training_data, epochs, mini_batch_size, learning_rate, validation_data, test_data, momentum_coefficient=momentum_coefficient, lmbda=regularization_rate, 
-                    scheduler_check_interval=scheduler_check_interval, param_decrease_rate=param_decrease_rate)
+            output_dict = net.SGD(output_dict, training_data, epochs, mini_batch_size, learning_rate, validation_data, test_data, momentum_coefficient=momentum_coefficient, lmbda=regularization_rate)
         
         #After all runs have executed
 
@@ -123,8 +130,6 @@ if graph_output:
     #Then we graph the results
     import numpy as np
     import matplotlib.pyplot as plt
-    import matplotlib
-    matplotlib.use('GTK')#So we print on the host computer when ssh'ing
     from collections import OrderedDict
 
     f = open('{0}_output.txt'.format(output_filename), 'r')
@@ -134,7 +139,10 @@ if graph_output:
     plt.suptitle(output_title)
     for config in f.readlines():
         config_results = json.loads(config, object_pairs_hook=OrderedDict)#So we preserve the order of our stored json
-        N = epochs
+        if training_data_subsections:
+            N = epochs*training_data_subsections
+        else:
+            N = epochs
         x = np.linspace(0, N, N)
         for output_type in range(output_types):
             if subplot_seperate_configs:
@@ -146,19 +154,25 @@ if graph_output:
             for r in config_results:
                 y = []
                 for j in config_results[r]:
-                    y.append(config_results[r][j][output_type])
+                    if training_data_subsections:
+                        for s in config_results[r][j]:
+                            #I wanna do the [a for b in c] but it's messier q_q
+                            y.append(config_results[r][j][s][output_type])
+                    else:
+                        y.append(config_results[r][j][output_type])
                 #The brighter the line, the later the config(argh i wish it was the other way w/e)
                 if int(r) >= run_count:
                     #Our final, average run
                     if len(configs[config_index]) > 5:
-                        plt.plot(x, y, c=str(config_index*1.0/config_count), lw=2.0, label=configs[config_index][5])
+                        plt.plot(x, y, c=str(config_index*1.0/config_count), lw=4.0, label=configs[config_index][5])
                     else:
-                        plt.plot(x, y, c=str(config_index*1.0/config_count), lw=2.0)
+                        plt.plot(x, y, c=str(config_index*1.0/config_count), lw=4.0)
                     #plt.plot(x, y, lw=4.0)
                 else:
                     #plt.plot(x, y, c=np.random.randn(3,1), ls='--')
                     plt.plot(x, y, c=str(config_index*1.0/config_count), ls='--')
-        if len(configs[config_index]) > 7:
+                    #insert plt.title here for when we add our config name metadata
+        if len(configs[config_index]) > 5:
             plt.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
         config_index+=1
 
