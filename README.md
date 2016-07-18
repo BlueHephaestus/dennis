@@ -53,6 +53,10 @@ Unfortunately, the results so far are so dismal, I believe largely due to the la
 
 As far as I have found, there are little to no free sources of spoken english audio files. Perhaps I could make a fancy youtube crawler to get words from videos using user-made captions, however it would likely not 100% accurate which could be devastating, and I also kinda got annoyed at the fact that it should already exist but didn't. The only sources I could find were either private or expensive. So I did my best to circumvent this, using the following:
 
+Current Results:
+
+![Current MK. 3 Results](/dennis3/comparisons/initial_setup2.png)
+
 1. I got every word in my music library (~5,000)
 2. Put them into espeak, festival, and pico2wave(linux CLI text to speech) to get the resulting wav files
 3. Definitely didn't put them into a 3rd party google translate text to speech, but if I did, it would have been the best TTS
