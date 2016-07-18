@@ -43,6 +43,10 @@ I decided to go to MK. 3 when implementing the entirely new data setup, so sever
 Due to some recently discovered bugs in the graphing part of things, I will not be including it since it is misleading. The results listed for MK. 2 are still accurate, however the graph would be misleading for the following reasons:
 
 ##MK. 3 - Current WIP version
+####Current Results:
+
+![Current MK. 3 Results](/dennis3/comparisons/initial_setup2.png)
+
 Input is currently 40*40 into Fully Connected sigmoid layers with 100 neurons, 30 neurons, and then a Softmax output layer of 4936 neurons.
 
 To get an idea of the results, it currently has it's best TRAINING accuracy as 1.6%. As for cost, it's ~3.0. This might not be so dismal if it took 5 seconds instead of 5 hours.
@@ -52,10 +56,6 @@ Many of the experiments for testing implementation of features are done with exp
 Unfortunately, the results so far are so dismal, I believe largely due to the lack of data, that I will likely not be able to take this as far as I wanted. I may record my own sayings of several other words to just have simple commands I can use, such as "shuffle", "loop", "stop", "pause", etc, however I don't know if I will due this since I am not able to take this project as far as I wanted. Even if I do have enough data(which let's be honest, I don't unless I figure out the algorithm the brain uses for generalization), then I would likely have to use a DCNN so deep that it would take longer to train than it would for me to get to university. I may add those new commands if I think it worthwhile, otherwise I will move to image recognition, reinforcement learning, or something like that.
 
 As far as I have found, there are little to no free sources of spoken english audio files. Perhaps I could make a fancy youtube crawler to get words from videos using user-made captions, however it would likely not 100% accurate which could be devastating, and I also kinda got annoyed at the fact that it should already exist but didn't. The only sources I could find were either private or expensive. So I did my best to circumvent this, using the following:
-
-Current Results:
-
-![Current MK. 3 Results](/dennis3/comparisons/initial_setup2.png)
 
 1. I got every word in my music library (~5,000)
 2. Put them into espeak, festival, and pico2wave(linux CLI text to speech) to get the resulting wav files
