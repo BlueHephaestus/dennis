@@ -38,46 +38,6 @@ else:
     print "Running under CPU"
 
 
-#For after we've trained and just want something to throw our samples at
-class StaticNetwork(object):
-
-    def __init__(self, layers):
-        """Takes a list of `layers`, describing the network architecture, and
-        a value for the `mini_batch_size` to be used during training
-        by stochastic gradient descent.
-
-        """
-        self.layers = layers
-        self.mini_batch_size = 1#placeholder because we won't be using it
-        self.params = [param for layer in self.layers for param in layer.params]
-
-    def predict(self, x):
-        self.x = T.matrix("x")
-        #self.y = T.ivector("y")
-        #self.x = x#our input
-
-        '''
-        init_layer = self.layers[0]
-        init_layer.set_inpt(self.x, self.x, self.mini_batch_size)
-        for j in xrange(1, len(self.layers)):
-            prev_layer, layer = self.layers[j-1], self.layers[j]
-            layer.set_inpt(
-                prev_layer.output, prev_layer.output_dropout, self.mini_batch_size)
-        self.output = self.layers[-1].output
-        '''
-        self.test_predictions = theano.function(
-            None, self.layers[-1].y_out,
-            givens={
-                self.x: [[x]]
-            })
-        print self.test_predictions()
-        print self.layers[-1].y_out
-        print np.argmax(self.layers[-1].y_out, axis=0)
-        print T.argmax(self.layers[-1].y_out)
-
-        return ""
-        #return np.argmax(self.layers[-1].y_out)
-
 #### Main class used to construct and train networks
 class Network(object):
 
@@ -122,6 +82,21 @@ class Network(object):
         self.output_types=output_types
 
 
+    def predict(self, test_data):
+        test_x = test_data
+
+        i = T.lscalar() # mini-batch index
+        #self.x = test_x[0]
+        #print self.x[0]
+        #print test_x[0][0].eval()
+
+        self.test_mb_predictions = theano.function(
+            [i], [self.layers[-1].output, self.layers[-1].y_out],
+            givens={
+                self.x: test_x[i]
+            })
+
+        return self.test_mb_predictions(0)
     def SGD(self, output_dict, training_data, epochs, mini_batch_size, eta,
             validation_data, test_data, lmbda=0.0, momentum_coefficient=0.0,
             scheduler_check_interval=10, param_decrease_rate=10):#Initialize early stopping stuff to reasonable defaults
@@ -290,7 +265,6 @@ class Network(object):
                         scheduler_results.pop(0)
             '''
             '''
-
         #Using our +1s for pretty print progress
         print "Config %i/%i, Run %i/%i Completed." % (self.config_index+1, self.config_count, self.run_index+1, self.run_count)
         return output_dict
@@ -301,7 +275,6 @@ class Network(object):
         f.close()
 
 #### Define layer types
-
 class ConvPoolLayer(object):
     """Used to create a combination of a convolutional and a max-pooling
     layer.  A more sophisticated implementation would separate the

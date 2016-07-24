@@ -49,6 +49,7 @@ def get_mfccs(data_dir):
         if sample not in label_dict:
             label_dict[sample] = label_total
             label_total+=1
+            print label_dict
         label_num = label_dict[sample] 
 
         y, sr = librosa.load(input_fname)

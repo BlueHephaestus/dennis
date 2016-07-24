@@ -91,6 +91,9 @@ def load_data_shared(training_data=None, validation_data=None, test_data=None, n
         training_data = normalize_input(training_data, input_normalizer_mean, input_normalizer_stddev)
         validation_data = normalize_input(validation_data, input_normalizer_mean, input_normalizer_stddev)
         test_data = normalize_input(test_data, input_normalizer_mean, input_normalizer_stddev)
+    else:
+        input_normalizer_mean = 0
+        input_normalizer_stddev = 1
 
     def shared(data):
         """Place the data into shared variables.  This allows Theano to copy
@@ -103,7 +106,7 @@ def load_data_shared(training_data=None, validation_data=None, test_data=None, n
             np.asarray(data[1], dtype=theano.config.floatX), borrow=True)
         return shared_x, T.cast(shared_y, "int32")
     print "Initializing Configuration..."
-    return [shared(training_data), shared(validation_data), shared(test_data)]
+    return [shared(training_data), shared(validation_data), shared(test_data), [input_normalizer_mean, input_normalizer_stddev]]
 
 #training_data, validation_data, test_data = get_data_subsets(archive_dir="../data/mfcc_expanded_samples.pkl.gz")
 #training_data, validation_data, test_data = load_data_shared(training_data, validation_data, test_data, normalize_x=True)

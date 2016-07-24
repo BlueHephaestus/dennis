@@ -42,7 +42,7 @@ I decided to go to MK. 3 when implementing the entirely new data setup, so sever
 
 Due to some recently discovered bugs in the graphing part of things, I will not be including it since it is misleading. The results listed for MK. 2 are still accurate, however the graph would be misleading for the following reasons:
 
-##MK. 3 - Current WIP version
+##MK. 3
 ####Current Results:
 
 ![Current MK. 3 Results](/dennis3/comparisons/initial_setup2.png)
@@ -82,6 +82,55 @@ Features to add:
 5. Test more deep and convolutional setups
 6. Test scheduling now that accuracy is actually changing with reasonable intervals
 7. Improve automatic scheduling to work better with automation
+
+##MK. 4
+
+Due to what I believe is largely a lack of sufficient data and also likely computational power(or an algorithm for generalization >= the brain's), I left MK. 3 and decided on the design for MK. 4.
+
+Instead of attempting to do a 5000 vocabulary speech recognition of ~5 samples each, I took after MK. 2 & MK. 1, recording 60 samples of four more words, and 120 of random miscellaneous words. Supplemented with the 60 each of the words from MK. 1 and MK. 2, the following is the vocab class - sample:
+
+0. Misc -     120
+1. Shuffle -  60
+2. Dennis -   60
+3. Next -     60
+4. Play -     60
+5. Pause -    60
+6. Back -     60
+
+Totalling 480 raw samples, which I expanded with speed factors of .9 and 1.1 as earlier, and transformed to MFCCs, giving 1440 MFCC samples. 
+
+I will post the results soon, however the best Test Accuracy is ~70%. This type of topology is much faster and easier to train, while also giving me 6 voice commands to control my music with. While I would very much like to have gotten MK. 3 working, I believe that to be infeasible. I am confident that I will be able to get to a < 5% error margin on test accuracy with this layout, especially considering the 70% accuracy was on a two-hidden-layer network with 100 and 30 neurons respectively. Before I move on to the features to add, there is one that I believe warrants it's own subheading:
+
+###CHO - Cool Hyper-Parameter Optimizer
+
+This is the idea I mentioned earlier in the features to add section of MK. 3, come to fruition. In summary,
+1. Generate vectors of Hyper Parameter(HP) values
+2. Get cartesian product
+3. Get average point output for each HP in the Cartesian Product via if three learning rates 0.3, 0.4, 0.5 and three mini batch sizes 10, 20, 30, we'd get the three values for (10, 0.3), (10, 0.4), (10, 0.5) and average these outputs since the effect of m=10 should be equivalent across the different learning rates. This gives us one value for our m=10(and the rest of the mini batch sizes) to use in the following steps. Note: I realize m is a relatively independent HP and can be determined as such.
+4. Use these new points for each HP to generate a quadratic linear regression of the form A + Bx + Cx^2 for each HP
+5. Add all of our quadratic linear regressions together to get a multivariable equation such as 5 + 4m + 7.2m^2 + .32n + 6.32n^2
+6. Compute the minimum to 1e-8 of our multivariable function using scipy.optimize.minimize with respective bounds
+7. Use our new minimum HP values to generate new ranges after decreasing step size, if step size is under our threshold then stop for this HP
+8. Go to Number 1 until all HPs are done
+
+This has shown to be way faster and better than me, in fact what I thought was a bug at once was actually the most efficient mini batch size I could have obtained, and it just knew better than me. While it is still in constant development and improvement, it determined the ideal(at least I hope they were ideal) HPs for the shallow network topology I mentioned earlier. Upon comparing with my own hypothesis for the best values, it gained a 20% improvement in test accuracy, the metric upon which I chose it to search them with(although this can be REALLY easily changed, I chose test accuracy because I see that as most relevant. I have considered a combination of accuracies for it to look at). 
+
+Now back to MK. 4:
+
+Features Added:
+1. CHO
+2. Saving and Loading Networks
+
+Features to Add:
+1. Actual implementation of live audio being fed into saved networks, currently only gets one sample at a time but this should not be a problem
+2. I may still improve scheduling, however I may just spend that time improving CHO instead.
+3. CHO - I will be adding more efficient step ranges to minimize the amount of configs that must be run like a human would do
+4. CHO - Work when there is only one run instead of only when run_count > 1 and uses average; This will be fixed very soon because new test topologies take FOREVER
+5. CHO - Possibly remove some step calculations from the end if #3 works out
+6. Possibly experiment with different types of Fast Fourier Transforms outside of MFCCs
+7. Possibly experiment with different types of data expansion on top of current, such as background noise
+8. Test Ensemble networks
+9. Test more deep and convolutional setups
 
 
 ##Credit to Michael Nielsen for his [awesome book on machine learning](http://neuralnetworksanddeeplearning.com/chap1.html), and also for his [extremely helpful and well-written neural network and machine learning code](https://github.com/mnielsen/neural-networks-and-deep-learning/). I can't thank him enough for getting me started and for the resources he has provided to everyone.
