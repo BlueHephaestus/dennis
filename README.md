@@ -2,6 +2,8 @@
 
 While much of the code here is just my experimentation with machine learning, like [here](https://github.com/DarkElement75/machine-learning-tinkering), it's also for the project that i've decided to call Dennis, who I plan on using to manage my local music library with voice commands. I will be doing incremental updates inside each Mark, but when I have reached certain goals I had for it or it has been upgraded a significant amount (i.e. when I decide I want to) I will add a new version file and description(Mark 1, Mark 2, Mark 3). Below I will summarize the improvements done in each Mark, and the current work if it is the one currently in progres.
 
+Note: If you ever want the data I used, contact me. I don't want to be like all the sources that keep their data private or at a price.
+
 ##MK. 1
 The first (barely) functional version, took in raw audio spectrogram from total of 120 wav files containing either "dennis" or "play", and output the word given. With **extremely** basic functionality it obtained 67% accuracy, or a 33% margin of error. 
 
@@ -115,7 +117,7 @@ This is the idea I mentioned earlier in the features to add section of MK. 3, co
 
 This has shown to be way faster and better than me, in fact what I thought was a bug at once was actually the most efficient mini batch size I could have obtained, and it just knew better than me. While it is still in constant development and improvement, it determined the ideal(at least I hope they were ideal) HPs for the shallow network topology I mentioned earlier. Upon comparing with my own hypothesis for the best values, it gained a 20% improvement in test accuracy, the metric upon which I chose it to search them with(although this can be REALLY easily changed, I chose test accuracy because I see that as most relevant. I have considered a combination of accuracies for it to look at). 
 
-Now back to MK. 4:
+###Now back to MK. 4:
 
 Features Added:
 1. CHO
