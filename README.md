@@ -131,14 +131,15 @@ Features Added:
 Features to Add:
 
 1. Actual implementation of live audio being fed into saved networks, currently only gets one sample at a time but this should not be a problem
-2. I may still improve scheduling, however I may just spend that time improving CHO instead.
-3. CHO - I will be adding more efficient step ranges to minimize the amount of configs that must be run like a human would do
-4. CHO - Work when there is only one run instead of only when run_count > 1 and uses average; This will be fixed very soon because new test topologies take FOREVER
-5. CHO - Possibly remove some step calculations from the end if #3 works out
-6. Possibly experiment with different types of Fast Fourier Transforms outside of MFCCs
-7. Possibly experiment with different types of data expansion on top of current, such as background noise
-8. Test Ensemble networks
-9. Test more deep and convolutional setups
+2. Continue optimizing HPs for experimental topologies, thanks to CHO I can work on other features while he handles that.
+3. I may still improve scheduling, however I may just spend that time improving CHO instead.
+4. CHO - I will be adding more efficient step ranges to minimize the amount of configs that must be run like a human would do
+5. CHO - Work when there is only one run instead of only when run_count > 1 and uses average; This will be fixed very soon because new test topologies take FOREVER
+6. CHO - Possibly remove some step calculations from the end if #3 works out
+7. Possibly experiment with different types of Fast Fourier Transforms outside of MFCCs
+8. Possibly experiment with different types of data expansion on top of current, such as background noise
+9. Test Ensemble networks
+10. Test more deep and convolutional setups
 
 
 ##Credit to Michael Nielsen for his [awesome book on machine learning](http://neuralnetworksanddeeplearning.com/chap1.html), and also for his [extremely helpful and well-written neural network and machine learning code](https://github.com/mnielsen/neural-networks-and-deep-learning/). I can't thank him enough for getting me started and for the resources he has provided to everyone.
