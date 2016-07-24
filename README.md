@@ -67,6 +67,7 @@ As far as I have found, there are little to no free sources of spoken english au
 6. Expanding with speeds of 0.9 and 1.1, I got 60,000 files (3.3 GB of data which is why the raw files aren't here)
 
 Features added:
+
 1. Momentum-Based Stochastic Gradient Descent 
 2. Percentage Completion out of config/run/epoch
 3. New setup with our 60,000 samples, 40*40(1600) inputs, and 4936 outputs
@@ -74,9 +75,11 @@ Features added:
 5. Cut me some slack I started 3 days ago(maybe 4? idk)
 
 Bug Fixes:
+
 1. The reason I did not post the other graphs is because I realized it was not resetting the parameters of the network when doing a new run for each config. This has been solved, and tested rigorously to make sure it has been solved. Since the previous networks saturated quite quickly it was not very noticable, so the results listed are still accurate for the best they achieved, at least with the supplied Hyper-Parameters.
 
 Features to add:
+
 1. I created an algorithm to do a very efficient form of grid search, based on the way that I optimize hyper parameters such as mini batch, where values of 10, 20, 30, ... 100 are tried, then if 20 and 30 do well, it would search between 20 and 30 like 20, 21, 22, ... 30, until the best mini batch size was found. However, I realized that applying this to the entire cartesian product of hyper parameters would involve finding the best fitting polynomial function of degree number of hyper parameters(dimensions), and also finding the minimum of an n-dimensional function. So in order to make a bot to optimize hyper parameters efficiently for my machine learning, I will be making a bot to do machine learning on my hyper parameters for machine learning. Unfortunately, I kinda want this to have the best results possible by the time i'm at university, so i'm going to be doing that manually for now. Gotta have something to show, eh? :D
 2. Possibly experiment with different types of Fast Fourier Transforms outside of MFCCs
 3. Possibly experiment with different types of data expansion on top of current, such as background noise
