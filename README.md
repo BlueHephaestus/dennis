@@ -106,6 +106,7 @@ I will post the results soon, however the best Test Accuracy is ~70%. This type 
 ###CHO - Cool Hyper-Parameter Optimizer
 
 This is the idea I mentioned earlier in the features to add section of MK. 3, come to fruition. In summary,
+
 1. Generate vectors of Hyper Parameter(HP) values
 2. Get cartesian product
 3. Get average point output for each HP in the Cartesian Product via if three learning rates 0.3, 0.4, 0.5 and three mini batch sizes 10, 20, 30, we'd get the three values for (10, 0.3), (10, 0.4), (10, 0.5) and average these outputs since the effect of m=10 should be equivalent across the different learning rates. This gives us one value for our m=10(and the rest of the mini batch sizes) to use in the following steps. Note: I realize m is a relatively independent HP and can be determined as such.
@@ -120,10 +121,12 @@ This has shown to be way faster and better than me, in fact what I thought was a
 ###Now back to MK. 4:
 
 Features Added:
+
 1. CHO
 2. Saving and Loading Networks
 
 Features to Add:
+
 1. Actual implementation of live audio being fed into saved networks, currently only gets one sample at a time but this should not be a problem
 2. I may still improve scheduling, however I may just spend that time improving CHO instead.
 3. CHO - I will be adding more efficient step ranges to minimize the amount of configs that must be run like a human would do
