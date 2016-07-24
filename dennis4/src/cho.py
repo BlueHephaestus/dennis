@@ -79,14 +79,14 @@ final_test_run = True
 #0 = Training Cost, 1 = Training Accuracy, etc.
 
 #Initialize our configurer
-configurer = Configurer(3, 100, 1, output_training_cost, output_training_accuracy, output_validation_accuracy, output_test_accuracy)
+configurer = Configurer(2, 100, 1, output_training_cost, output_training_accuracy, output_validation_accuracy, output_test_accuracy)
 
 #Set our initial HPs for cho to search through and optimize
-m = HyperParameter(15, 15, 10, .1, 1, "Mini Batch Size")
-n = HyperParameter(.1, 3.0, .5, .2, 0.02, "Learning Rate")#I really recommend not putting this to 0 by default on accident like I did too many times
+m = HyperParameter(10, 200, 10, .1, 1, "Mini Batch Size")
+n = HyperParameter(1.0, 1.0, 0, .2, 0.02, "Learning Rate")#I really recommend not putting this to 0 by default on accident like I did too many times
 u = HyperParameter(0.0, 0.0, 0, .1, 0.01, "Momentum Coefficient")
-l = HyperParameter(0.0, 2.0, 1.0, .1, 0.01, "L2 Regularization Rate")
-p = HyperParameter(0.0, 0.0, 0, .1, 0.1, "Dropout Regularization Percentage")
+l = HyperParameter(0.0, 0.0, 0, .1, 0.01, "L2 Regularization Rate")
+p = HyperParameter(0.0, 0.0, 0, .1, 0.01, "Dropout Regularization Percentage")
 
 hps = [m, n, u, l, p]
 """

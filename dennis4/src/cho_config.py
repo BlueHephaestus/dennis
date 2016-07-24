@@ -13,7 +13,7 @@ class Configurer(object):
         self.epochs = epochs
 
         self.training_data, self.validation_data, self.test_data = get_data_subsets(p_training = 0.8, p_validation = 0.1, p_test = 0.1, archive_dir="../data/mfcc_expanded_samples.pkl.gz")
-        self.training_data, self.validation_data, self.test_data = load_data_shared(training_data=self.training_data, validation_data=self.validation_data, test_data=self.test_data, normalize_x=True)
+        self.training_data, self.validation_data, self.test_data, normalize_data = load_data_shared(training_data=self.training_data, validation_data=self.validation_data, test_data=self.test_data, normalize_x=True)
 
         #Our default values
         self.output_types = output_types#DON'T FORGET TO UPDATE THIS WITH THE OTHERS
@@ -31,7 +31,7 @@ class Configurer(object):
         self.output_title="Cho Tests"
         self.output_filename="cho_tests"
         self.output_type_names = ["Training Cost", "Training % Accuracy", "Validation % Accuracy", "Test % Accuracy"]
-        self.print_results = False
+        self.print_results = True
         self.print_perc_complete = False
         self.update_output = True
         self.graph_output = False
@@ -46,13 +46,54 @@ class Configurer(object):
         #Gotta make seperate Network instances for each run else the params don't get re-initialized
 
         #Black --> white
+        '''
+        Possible final layout
+        [Network([ 
+            ConvPoolLayer(image_shape=(mini_batch_size, 1, 47, 47),
+                filter_shape=(20, 1, 6, 6),
+                poolsize=(2,2)),
+            ConvPoolLayer(image_shape=(mini_batch_size, 20, 21, 21),
+                filter_shape=(40, 20, 4, 4),
+                poolsize=(2,2)),
+            FullyConnectedLayer(n_in=3240, n_out=800, p_dropout=p_dropout), 
+            FullyConnectedLayer(n_in=800, n_out=200, p_dropout=p_dropout), 
+            FullyConnectedLayer(n_in=200, n_out=50, p_dropout=p_dropout), 
+            SoftmaxLayer(n_in=50, n_out=7, p_dropout=p_dropout)], mini_batch_size), mini_batch_size, 
+            learning_rate, momentum_coefficient, regularization_rate, 100, 10, ""] 
+        for r in range(self.run_count)
+
+        Secondary Possible Final Layout, less deep and convolutional
+        [Network([ 
+            ConvPoolLayer(image_shape=(mini_batch_size, 1, 47, 47),
+                filter_shape=(20, 1, 8, 8),
+                poolsize=(2,2)),
+            FullyConnectedLayer(n_in=20**3, n_out=2000), 
+            FullyConnectedLayer(n_in=2000, n_out=100), 
+            FullyConnectedLayer(n_in=100, n_out=30), 
+            SoftmaxLayer(n_in=30, n_out=7)], mini_batch_size), mini_batch_size, 
+            learning_rate, momentum_coefficient, regularization_rate, 100, 10, ""] 
+        for r in range(self.run_count)
+
+        Old Layout
+        [Network([ 
+            FullyConnectedLayer(n_in=47*47, n_out=100), 
+            FullyConnectedLayer(n_in=100, n_out=30), 
+            SoftmaxLayer(n_in=30, n_out=7)], mini_batch_size), mini_batch_size, 
+            learning_rate, momentum_coefficient, regularization_rate, 100, 10, ""] 
+        for r in range(self.run_count)
+        '''
         config = [
                     [Network([ 
-                        FullyConnectedLayer(n_in=47*47, n_out=100, p_dropout=p_dropout), 
-                        FullyConnectedLayer(n_in=100, n_out=30, p_dropout=p_dropout), 
-                        SoftmaxLayer(n_in=30, n_out=7, p_dropout=p_dropout)], mini_batch_size), mini_batch_size, 
+                        ConvPoolLayer(image_shape=(mini_batch_size, 1, 47, 47),
+                            filter_shape=(20, 1, 8, 8),
+                            poolsize=(2,2)),
+                        FullyConnectedLayer(n_in=20**3, n_out=2000), 
+                        FullyConnectedLayer(n_in=2000, n_out=100), 
+                        FullyConnectedLayer(n_in=100, n_out=30), 
+                        SoftmaxLayer(n_in=30, n_out=7)], mini_batch_size), mini_batch_size, 
                         learning_rate, momentum_coefficient, regularization_rate, 100, 10, ""] 
                     for r in range(self.run_count)
+                    
                  ]
 
         #First, we run our configuration

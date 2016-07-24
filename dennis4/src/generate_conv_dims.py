@@ -1,18 +1,8 @@
 import numpy as np
 
-'''
-image = 290
-strides = [float(s) for s in xrange(1, 16)]
-filters = [float(f) for f in xrange(32, 64)]
-'''
-'''
-image = 64
-strides = [float(s) for s in xrange(1, 8)]
-filters = [float(f) for f in xrange(4, 16)]
-'''
-image = 18
+image = 47
 strides = [float(s) for s in xrange(1, 2)]
-filters = [float(f) for f in xrange(2, 8)]
+filters = [float(f) for f in xrange(2, 116)]
 
 for s in strides:
   for f in filters:

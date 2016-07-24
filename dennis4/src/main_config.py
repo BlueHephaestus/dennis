@@ -8,13 +8,13 @@ import sample_loader
 from sample_loader import *
 
 training_data, validation_data, test_data = get_data_subsets(p_training = 0.8, p_validation = 0.1, p_test = 0.1, archive_dir="../data/mfcc_expanded_samples.pkl.gz")
-training_data, validation_data, test_data = load_data_shared(training_data=training_data, validation_data=validation_data, test_data=test_data, normalize_x=True)
+training_data, validation_data, test_data, normalize_data = load_data_shared(training_data=training_data, validation_data=validation_data, test_data=test_data, normalize_x=True)
 
 #So we have similarities to use for our graphing / these need to be the same for it to be more or less reasonable
 #Basically these are our global things
 output_types = 4#DON'T FORGET TO UPDATE THIS WITH THE OTHERS
 run_count = 1
-epochs = 100
+epochs = 1
 training_data_subsections=None#Won't be needing this for our tiny dataset!
 
 #Currently too fast for these to be of much use, we might be able to use them well when we get deeper and more convolutional
@@ -26,32 +26,50 @@ output_training_accuracy=True
 output_validation_accuracy=True
 output_test_accuracy=True
 
-output_title="Testing Cho's optimization for learning rates on test accuracy"
-output_filename="cho_tests"
+output_title="Cho and New Layouts"
+output_filename="new_layout_tests"
 output_type_names = ["Training Cost", "Training % Accuracy", "Validation % Accuracy", "Test % Accuracy"]
-print_results = False
+print_results = True
 print_perc_complete = False
 update_output = True
 graph_output = True
-print_output = True
+save_net = True
+literal_print_output = True
 #Will by default subplot the output types, will make config*outputs if that option is specified as well.
 subplot_seperate_configs = False
 
 #With this setup we don't need redundant config info or data types :D
-#the only redundant thing we need is our mini_batch_size, far as I can tell q_q
 #Network object, mini batch size, learning rate, momentum coefficient, regularization rate
 
 #Gotta make seperate Network instances for each run else the params don't get re-initialized
 
 #Black --> white
-#ONE LAST RUN GOING FOR GOLD
+'''
+                [Network([ 
+                    ConvPoolLayer(image_shape=(100, 1, 47, 47),
+                        filter_shape=(20, 1, 6, 6),
+                        poolsize=(2,2)),
+                    ConvPoolLayer(image_shape=(100, 20, 21, 21),
+                        filter_shape=(40, 20, 4, 4),
+                        poolsize=(2,2)),
+                    FullyConnectedLayer(n_in=3240, n_out=800), 
+                    FullyConnectedLayer(n_in=800, n_out=200), 
+                    FullyConnectedLayer(n_in=200, n_out=50), 
+                    SoftmaxLayer(n_in=50, n_out=7)], 100), 100, 
+                    1.0, 0.0, 0.0, 100, 10, ""] 
+                for r in range(run_count)
+'''
 configs = [
             [
                 [Network([ 
-                    FullyConnectedLayer(n_in=47*47, n_out=100), 
+                    ConvPoolLayer(image_shape=(100, 1, 47, 47),
+                        filter_shape=(20, 1, 8, 8),
+                        poolsize=(2,2)),
+                    FullyConnectedLayer(n_in=20**3, n_out=2000), 
+                    FullyConnectedLayer(n_in=2000, n_out=100), 
                     FullyConnectedLayer(n_in=100, n_out=30), 
                     SoftmaxLayer(n_in=30, n_out=7)], 100), 100, 
-                    1.0, 0.0, 0.0, 100, 10] 
+                    1.0, 0.0, 0.0, 100, 10, ""] 
                 for r in range(run_count)
             ],
         ]
@@ -125,7 +143,13 @@ if update_output:
         f.close()
 
         #Save layers
-        net.save('dennis4.pkl.gz')
+        if save_net:
+            print "Saving Neural Network Layers..."
+            net.save('../saved_networks/%s.pkl.gz' % output_filename)
+            f = open('../saved_networks/%s_metadata.txt' % (output_filename), 'w')
+            f.write("{0}\n{1}\n{2}".format(normalize_data[0], normalize_data[1], 47*47))
+            f.close()
+
 
 if graph_output:
     #Then we graph the results
@@ -171,7 +195,7 @@ if graph_output:
         config_index+=1
 
     '''
-    if print_output:
+    if literal_print_output:
         plt.savefig(output_filename + ".png", bbox_inches='tight')
     '''
     plt.show()
