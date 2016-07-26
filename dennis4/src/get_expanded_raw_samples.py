@@ -3,6 +3,8 @@ import os
 import re
 import shutil
 import librosa
+import scipy
+from scipy import io as sp
 
 #This program takes our unformatted data from the data scrapers and moves the files into one big file
 data_dir = "../data/audio"
@@ -55,11 +57,17 @@ def expand_audio(data_dir, expanded_data_dir):
         #print output_original_fname
         try:
             y, sr = librosa.load(output_original_fname)#Because I like to keep the mods in the expanded dir
-            y_slow = librosa.effects.time_stretch(y, 0.9)
-            y_fast = librosa.effects.time_stretch(y, 1.1)
+            y_slow = librosa.effects.time_stretch(y, 1.0)
+            y_fast = librosa.effects.time_stretch(y, 1.0)
+            print y, len(y)
+            print y_slow, len(y_slow)
+            #import sys
+            #sys.exit()
 
-            librosa.output.write_wav(output_slow_fname, y_slow, sr)
-            librosa.output.write_wav(output_fast_fname, y_fast, sr)
+            #sp.wavfile.write(output_slow_fname, 44100, y)
+            librosa.output.write_wav(output_slow_fname, y, sr)
+            #librosa.output.write_wav(output_slow_fname, y_slow, sr)
+            #librosa.output.write_wav(output_fast_fname, y_fast, sr)
         except:
             #This shouldn't happen anymore because of the code in get_raw_samples.py,
             #However I have it just in case something arises.

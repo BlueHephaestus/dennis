@@ -1,6 +1,6 @@
 import curses, alsaaudio, wave
 
-word = "misc"
+word = "dennis"
 
 stdscr = curses.initscr()
 curses.cbreak()
@@ -36,6 +36,7 @@ while key != ord('q'):
             inp.setformat(alsaaudio.PCM_FORMAT_S16_LE)
             inp.setperiodsize(1024)
 
+            #w = wave.open('back_test%i.wav' % (recording_num), 'w')
             w = wave.open('../data/audio/%s%i.wav' % (word, recording_num), 'w')
             w.setnchannels(1)
             w.setsampwidth(2)
