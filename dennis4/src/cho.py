@@ -5,6 +5,8 @@ from scipy.optimize import minimize
 import cho_config
 from cho_config import Configurer
 
+import sound_notifications
+
 def frange(start, end=None, inc=None):
     "A range function, that does accept float increments..."
 
@@ -82,7 +84,7 @@ final_test_run = True
 configurer = Configurer(2, 100, 1, output_training_cost, output_training_accuracy, output_validation_accuracy, output_test_accuracy)
 
 #Set our initial HPs for cho to search through and optimize
-m = HyperParameter(10, 200, 10, .1, 1, "Mini Batch Size")
+m = HyperParameter(10, 100, 10, .1, 1, "Mini Batch Size")
 n = HyperParameter(1.0, 1.0, 0, .2, 0.02, "Learning Rate")#I really recommend not putting this to 0 by default on accident like I did too many times
 u = HyperParameter(0.0, 0.0, 0, .1, 0.01, "Momentum Coefficient")
 l = HyperParameter(0.0, 0.0, 0, .1, 0.01, "L2 Regularization Rate")
@@ -99,6 +101,7 @@ while True:
     #Get our vectors to make cartesian product out of
     hp_vectors = [hp.get_vector() for hp in hps]#When we need the actual values
     print "New Optimization Initialized, Hyper Parameter Ranges are:"
+    sound_notifications.default_beeps()
     for hp_index, hp in enumerate(hp_vectors):
         print "\t%s: %s" % (hps[hp_index].label, ', '.join(map(str, hp)))
 
@@ -120,6 +123,7 @@ while True:
                 print "Output Type #%i: %s" % (output_type_index, ', '.join(map(str, [epoch[1][output_type_index] for epoch in config_avg_result[-n_y:]])))
 
             print "And here are the Optimized Hyper Parameters again:"
+            sound_notifications.default_beeps()
             for hp_index, hp in enumerate(hp_vectors):
                 print "\t%s: %f" % (hps[hp_index].label, hps[hp_index].min)
 

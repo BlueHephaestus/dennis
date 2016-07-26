@@ -13,6 +13,12 @@ import theano.tensor as T
 #80% - Training
 #10% - Validation
 #10% - Test
+def unison_shuffle(a, b):
+  rng_state = np.random.get_state()
+  np.random.shuffle(a)
+  np.random.set_state(rng_state)
+  np.random.shuffle(b)
+
 def get_data_subsets(archive_dir="../data/mfcc_samples.pkl.gz", p_training=0.8, p_validation=0.1, p_test=0.1):
   print "Getting Training, Validation, and Test Data..."
   
@@ -39,7 +45,12 @@ def get_data_subsets(archive_dir="../data/mfcc_samples.pkl.gz", p_training=0.8, 
   n_training_subset = np.floor(p_training*n_samples)
   n_validation_subset = np.floor(p_validation*n_samples)
   n_test_subset = np.floor(p_test*n_samples)
+  
+  #Shuffle while retaining element correspondence
+  print "Shuffling data..."
+  unison_shuffle(data[0], data[1])
 
+  #Get actual subsets
   data_x_subsets = np.split(data[0], [n_training_subset, n_training_subset+n_validation_subset])#basically the lines we cut to get our 3 subsections
   data_y_subsets = np.split(data[1], [n_training_subset, n_training_subset+n_validation_subset])
 

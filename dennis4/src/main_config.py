@@ -7,14 +7,14 @@ import json
 import sample_loader
 from sample_loader import *
 
-training_data, validation_data, test_data = get_data_subsets(p_training = 0.8, p_validation = 0.1, p_test = 0.1, archive_dir="../data/mfcc_expanded_samples.pkl.gz")
+training_data, validation_data, test_data = get_data_subsets(p_training = 0.8, p_validation = 0.1, p_test = 0.1, archive_dir="../data/mfcc_samples.pkl.gz")
 training_data, validation_data, test_data, normalize_data = load_data_shared(training_data=training_data, validation_data=validation_data, test_data=test_data, normalize_x=True)
 
 #So we have similarities to use for our graphing / these need to be the same for it to be more or less reasonable
 #Basically these are our global things
 output_types = 4#DON'T FORGET TO UPDATE THIS WITH THE OTHERS
-run_count = 1
-epochs = 1
+run_count = 3
+epochs = 100
 training_data_subsections=None#Won't be needing this for our tiny dataset!
 
 #Currently too fast for these to be of much use, we might be able to use them well when we get deeper and more convolutional
@@ -26,15 +26,15 @@ output_training_accuracy=True
 output_validation_accuracy=True
 output_test_accuracy=True
 
-output_title="Cho and New Layouts"
-output_filename="new_layout_tests"
+output_title="For Field Testing"
+output_filename="dennis4_shallow_unexpanded"
 output_type_names = ["Training Cost", "Training % Accuracy", "Validation % Accuracy", "Test % Accuracy"]
-print_results = True
+print_results = False
 print_perc_complete = False
 update_output = True
 graph_output = True
 save_net = True
-literal_print_output = True
+literal_print_output = False
 #Will by default subplot the output types, will make config*outputs if that option is specified as well.
 subplot_seperate_configs = False
 
@@ -58,9 +58,8 @@ subplot_seperate_configs = False
                     SoftmaxLayer(n_in=50, n_out=7)], 100), 100, 
                     1.0, 0.0, 0.0, 100, 10, ""] 
                 for r in range(run_count)
-'''
-configs = [
-            [
+
+
                 [Network([ 
                     ConvPoolLayer(image_shape=(100, 1, 47, 47),
                         filter_shape=(20, 1, 8, 8),
@@ -70,6 +69,15 @@ configs = [
                     FullyConnectedLayer(n_in=100, n_out=30), 
                     SoftmaxLayer(n_in=30, n_out=7)], 100), 100, 
                     1.0, 0.0, 0.0, 100, 10, ""] 
+                for r in range(run_count)
+'''
+configs = [
+            [
+                [Network([ 
+                    FullyConnectedLayer(n_in=47*47, n_out=100), 
+                    FullyConnectedLayer(n_in=100, n_out=30), 
+                    SoftmaxLayer(n_in=30, n_out=7)], 15), 15, 
+                    0.1778, 0.21, 1.87, 100, 10, ""] 
                 for r in range(run_count)
             ],
         ]

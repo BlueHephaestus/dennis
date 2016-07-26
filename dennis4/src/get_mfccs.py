@@ -72,6 +72,11 @@ def regenerate_mfccs(archive_dir, get_expanded=False):
     validation_data = get_mfcc_data(validation_data_dir, validation_data)
     test_data = get_mfcc_data(test_data_dir, test_data)
     '''
+    archive_dir = "../data/mfcc_samples.pkl.gz"
+    expanded_archive_dir = "../data/mfcc_expanded_samples.pkl.gz"
+    data_dir = "../data/audio"
+    expanded_data_dir = "../data/expanded_audio"
+
     if get_expanded:
         data_dir = expanded_data_dir
         archive_dir = expanded_archive_dir
@@ -82,5 +87,4 @@ def regenerate_mfccs(archive_dir, get_expanded=False):
     pickle.dump((data), f, protocol=-1)
     f.close()
 
-regenerate_mfccs(archive_dir, get_expanded=True)
-
+regenerate_mfccs(archive_dir, get_expanded=False)

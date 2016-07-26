@@ -91,12 +91,13 @@ class Network(object):
         #print test_x[0][0].eval()
 
         self.test_mb_predictions = theano.function(
-            [i], [self.layers[-1].output, self.layers[-1].y_out],
+            [i], [self.layers[-1].y_out, self.layers[-1].output],
             givens={
                 self.x: test_x[i]
             })
 
         return self.test_mb_predictions(0)
+
     def SGD(self, output_dict, training_data, epochs, mini_batch_size, eta,
             validation_data, test_data, lmbda=0.0, momentum_coefficient=0.0,
             scheduler_check_interval=10, param_decrease_rate=10):#Initialize early stopping stuff to reasonable defaults
