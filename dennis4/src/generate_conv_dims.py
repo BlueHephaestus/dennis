@@ -1,6 +1,6 @@
 import numpy as np
 
-image = 47
+image = 51
 strides = [float(s) for s in xrange(1, 2)]
 filters = [float(f) for f in xrange(2, 116)]
 

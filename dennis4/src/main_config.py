@@ -7,13 +7,13 @@ import json
 import sample_loader
 from sample_loader import *
 
-training_data, validation_data, test_data = get_data_subsets(p_training = 0.8, p_validation = 0.1, p_test = 0.1, archive_dir="../data/mfcc_samples.pkl.gz")
+training_data, validation_data, test_data = get_data_subsets(p_training = 0.8, p_validation = 0.1, p_test = 0.1, archive_dir="../data/mfcc_expanded_samples.pkl.gz")
 training_data, validation_data, test_data, normalize_data = load_data_shared(training_data=training_data, validation_data=validation_data, test_data=test_data, normalize_x=True)
 
 #So we have similarities to use for our graphing / these need to be the same for it to be more or less reasonable
 #Basically these are our global things
 output_types = 4#DON'T FORGET TO UPDATE THIS WITH THE OTHERS
-run_count = 3
+run_count = 1
 epochs = 100
 training_data_subsections=None#Won't be needing this for our tiny dataset!
 
@@ -32,7 +32,7 @@ output_type_names = ["Training Cost", "Training % Accuracy", "Validation % Accur
 print_results = False
 print_perc_complete = False
 update_output = True
-graph_output = True
+graph_output = False
 save_net = True
 literal_print_output = False
 #Will by default subplot the output types, will make config*outputs if that option is specified as well.
@@ -70,16 +70,49 @@ subplot_seperate_configs = False
                     SoftmaxLayer(n_in=30, n_out=7)], 100), 100, 
                     1.0, 0.0, 0.0, 100, 10, ""] 
                 for r in range(run_count)
-'''
-configs = [
-            [
+
                 [Network([ 
-                    FullyConnectedLayer(n_in=47*47, n_out=100), 
+                    ConvPoolLayer(image_shape=(100, 1, 51, 51),
+                        filter_shape=(20, 1, 8, 8),
+                        poolsize=(2,2)),
+                    FullyConnectedLayer(n_in=22*22*20, n_out=100), 
+                    FullyConnectedLayer(n_in=100, n_out=30), 
+                    SoftmaxLayer(n_in=30, n_out=7)], 100), 100, 
+                    1.0, 0.0, 0.0, 100, 10, ""] 
+                for r in range(run_count)
+
+                [Network([ 
+                    ConvPoolLayer(image_shape=(14, 1, 51, 51),
+                        filter_shape=(20, 1, 8, 8),
+                        poolsize=(2,2)),
+                    FullyConnectedLayer(n_in=22*22*20, n_out=2000), 
+                    FullyConnectedLayer(n_in=2000, n_out=100), 
+                    FullyConnectedLayer(n_in=100, n_out=30), 
+                    SoftmaxLayer(n_in=30, n_out=7)], 14), 14, 
+                    1.0, 0.0, 0.0, 100, 10, ""] 
+                for r in range(run_count)
+
+                [Network([ 
+                    FullyConnectedLayer(n_in=51*51, n_out=100), 
                     FullyConnectedLayer(n_in=100, n_out=30), 
                     SoftmaxLayer(n_in=30, n_out=7)], 15), 15, 
                     0.1778, 0.21, 1.87, 100, 10, ""] 
                 for r in range(run_count)
-            ],
+ 
+'''
+configs = [
+            [
+                [Network([ 
+                    ConvPoolLayer(image_shape=(14, 1, 51, 51),
+                        filter_shape=(20, 1, 8, 8),
+                        poolsize=(2,2)),
+                    FullyConnectedLayer(n_in=22*22*20, n_out=2000), 
+                    FullyConnectedLayer(n_in=2000, n_out=100), 
+                    FullyConnectedLayer(n_in=100, n_out=30), 
+                    SoftmaxLayer(n_in=30, n_out=7)], 14), 14, 
+                    1.0, 0.0, 0.0, 100, 10, ""] 
+                for r in range(run_count)
+           ],
         ]
 
 config_count = len(configs)
