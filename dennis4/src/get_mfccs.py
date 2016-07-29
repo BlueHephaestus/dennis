@@ -15,7 +15,7 @@ n_mfcc = 20#The default
 #max_audio_len = 70
 #max_mfcc_len = 1560
 #max_mfcc_len = 1600
-max_mfcc_len = 2209
+max_mfcc_len = 2601#51*51 for noise
 
 def get_name(s):
     s = re.sub("\d+", "", s)#Remove digits if they exist(in the case of wikimedia)
@@ -87,4 +87,4 @@ def regenerate_mfccs(archive_dir, get_expanded=False):
     pickle.dump((data), f, protocol=-1)
     f.close()
 
-regenerate_mfccs(archive_dir, get_expanded=False)
+regenerate_mfccs(archive_dir, get_expanded=True)

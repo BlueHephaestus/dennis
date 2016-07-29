@@ -86,6 +86,16 @@ class Configurer(object):
             learning_rate, momentum_coefficient, regularization_rate, 100, 10, ""] 
         for r in range(self.run_count)
 
+        [Network([ 
+            ConvPoolLayer(image_shape=(mini_batch_size, 1, 47, 47),
+                filter_shape=(20, 1, 8, 8),
+                poolsize=(2,2)),
+            FullyConnectedLayer(n_in=20**3, n_out=100), 
+            FullyConnectedLayer(n_in=100, n_out=30), 
+            SoftmaxLayer(n_in=30, n_out=7)], mini_batch_size), mini_batch_size, 
+            learning_rate, momentum_coefficient, regularization_rate, 100, 10, ""] 
+        for r in range(self.run_count)
+
         Old Layout
         [Network([ 
             FullyConnectedLayer(n_in=47*47, n_out=100), 
@@ -96,10 +106,11 @@ class Configurer(object):
         '''
         config = [
                     [Network([ 
-                        ConvPoolLayer(image_shape=(mini_batch_size, 1, 47, 47),
+                        ConvPoolLayer(image_shape=(mini_batch_size, 1, 51, 51),
                             filter_shape=(20, 1, 8, 8),
                             poolsize=(2,2)),
-                        FullyConnectedLayer(n_in=20**3, n_out=100), 
+                        FullyConnectedLayer(n_in=22*22*20, n_out=2000), 
+                        FullyConnectedLayer(n_in=2000, n_out=100), 
                         FullyConnectedLayer(n_in=100, n_out=30), 
                         SoftmaxLayer(n_in=30, n_out=7)], mini_batch_size), mini_batch_size, 
                         learning_rate, momentum_coefficient, regularization_rate, 100, 10, ""] 

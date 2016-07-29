@@ -5,6 +5,7 @@ import shutil
 import librosa
 import scipy
 from scipy import io as sp
+import numpy as np
 
 #This program takes our unformatted data from the data scrapers and moves the files into one big file
 data_dir = "../data/audio"
@@ -42,8 +43,8 @@ def expand_audio(data_dir, expanded_data_dir):
             sample_dict[sample] = 0
         local_sample_index = sample_dict[sample]
 
-        output_original_fname = expanded_data_dir + "/" + "%s%i.wav" % (sample, local_sample_index)
-        shutil.copyfile(input_fname, output_original_fname)#Copy original
+        #output_original_fname = expanded_data_dir + "/" + "%s%i.wav" % (sample, local_sample_index)
+        #shutil.copyfile(input_fname, output_original_fname)#Copy original
 
         #local_sample_total = len(os.listdir(f))#for use with new increments of filenames
         #local_sample_num = local_sample_total
@@ -51,23 +52,31 @@ def expand_audio(data_dir, expanded_data_dir):
         #Do our librosa stuff
         print "\tAugmenting #%i: %s%i.wav..." % (sample_num, sample, local_sample_index)
         #input_fname = expanded_f + "/" + "%i.wav" % (local_sample_index)
+        output_original_fname = expanded_data_dir + "/" + "%s%i.wav" % (sample, local_sample_index)
         output_slow_fname = expanded_data_dir + "/" + "%s%i.wav" % (sample, local_sample_index+1)
         output_fast_fname = expanded_data_dir + "/" + "%s%i.wav" % (sample, local_sample_index+2)
 
         #print output_original_fname
         try:
-            y, sr = librosa.load(output_original_fname)#Because I like to keep the mods in the expanded dir
-            y_slow = librosa.effects.time_stretch(y, 1.0)
-            y_fast = librosa.effects.time_stretch(y, 1.0)
-            print y, len(y)
-            print y_slow, len(y_slow)
-            #import sys
-            #sys.exit()
+            #Get our noise
+            y, sr = librosa.load("noise.wav")
+            noise = list(y)[8192:16384]
 
-            #sp.wavfile.write(output_slow_fname, 44100, y)
-            librosa.output.write_wav(output_slow_fname, y, sr)
-            #librosa.output.write_wav(output_slow_fname, y_slow, sr)
-            #librosa.output.write_wav(output_fast_fname, y_fast, sr)
+            y, sr = librosa.load(input_fname)
+
+            #Add noise before expanding
+            y = list(y)
+            noise.extend(y)
+            y = np.array(noise, dtype=np.float32)
+
+            #Expand
+            y_slow = librosa.effects.time_stretch(y, 0.9)
+            y_fast = librosa.effects.time_stretch(y, 1.1)
+
+            #Write the same one using librosa so we get float 32 bit endians for all of them 
+            librosa.output.write_wav(output_original_fname, y, sr)
+            librosa.output.write_wav(output_slow_fname, y_slow, sr)
+            librosa.output.write_wav(output_fast_fname, y_fast, sr)
         except:
             #This shouldn't happen anymore because of the code in get_raw_samples.py,
             #However I have it just in case something arises.
