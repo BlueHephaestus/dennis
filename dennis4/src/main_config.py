@@ -1,9 +1,12 @@
 #FOR TESTING CHO'S RESULTS
 import dennis4
 from dennis4 import Network
-from dennis4 import sigmoid, tanh, ReLU, ConvPoolLayer, FullyConnectedLayer, SoftmaxLayer
+from dennis4 import sigmoid, tanh, ReLU, linear
+from dennis4 import log_likelihood, cross_entropy
+from dennis4 import ConvPoolLayer, FullyConnectedLayer, SoftmaxLayer
 
 import json
+import time
 import sample_loader
 from sample_loader import *
 
@@ -13,8 +16,8 @@ training_data, validation_data, test_data, normalize_data = load_data_shared(tra
 #So we have similarities to use for our graphing / these need to be the same for it to be more or less reasonable
 #Basically these are our global things
 output_types = 4#DON'T FORGET TO UPDATE THIS WITH THE OTHERS
-run_count = 1
-epochs = 100
+run_count = 3
+epochs = 10
 training_data_subsections=None#Won't be needing this for our tiny dataset!
 
 #Currently too fast for these to be of much use, we might be able to use them well when we get deeper and more convolutional
@@ -26,14 +29,14 @@ output_training_accuracy=True
 output_validation_accuracy=True
 output_test_accuracy=True
 
-output_title="For Field Testing"
-output_filename="dennis4_shallow_unexpanded"
+output_title = "LL Cost + Softmax vs CE Cost + Sigmoid"
+output_filename = "ll_vs_ce"
 output_type_names = ["Training Cost", "Training % Accuracy", "Validation % Accuracy", "Test % Accuracy"]
-print_results = False
+print_results = True
 print_perc_complete = False
 update_output = True
-graph_output = False
-save_net = True
+graph_output = True
+save_net = False
 literal_print_output = False
 #Will by default subplot the output types, will make config*outputs if that option is specified as well.
 subplot_seperate_configs = False
@@ -46,42 +49,6 @@ subplot_seperate_configs = False
 #Black --> white
 '''
                 [Network([ 
-                    ConvPoolLayer(image_shape=(100, 1, 47, 47),
-                        filter_shape=(20, 1, 6, 6),
-                        poolsize=(2,2)),
-                    ConvPoolLayer(image_shape=(100, 20, 21, 21),
-                        filter_shape=(40, 20, 4, 4),
-                        poolsize=(2,2)),
-                    FullyConnectedLayer(n_in=3240, n_out=800), 
-                    FullyConnectedLayer(n_in=800, n_out=200), 
-                    FullyConnectedLayer(n_in=200, n_out=50), 
-                    SoftmaxLayer(n_in=50, n_out=7)], 100), 100, 
-                    1.0, 0.0, 0.0, 100, 10, ""] 
-                for r in range(run_count)
-
-
-                [Network([ 
-                    ConvPoolLayer(image_shape=(100, 1, 47, 47),
-                        filter_shape=(20, 1, 8, 8),
-                        poolsize=(2,2)),
-                    FullyConnectedLayer(n_in=20**3, n_out=2000), 
-                    FullyConnectedLayer(n_in=2000, n_out=100), 
-                    FullyConnectedLayer(n_in=100, n_out=30), 
-                    SoftmaxLayer(n_in=30, n_out=7)], 100), 100, 
-                    1.0, 0.0, 0.0, 100, 10, ""] 
-                for r in range(run_count)
-
-                [Network([ 
-                    ConvPoolLayer(image_shape=(100, 1, 51, 51),
-                        filter_shape=(20, 1, 8, 8),
-                        poolsize=(2,2)),
-                    FullyConnectedLayer(n_in=22*22*20, n_out=100), 
-                    FullyConnectedLayer(n_in=100, n_out=30), 
-                    SoftmaxLayer(n_in=30, n_out=7)], 100), 100, 
-                    1.0, 0.0, 0.0, 100, 10, ""] 
-                for r in range(run_count)
-
-                [Network([ 
                     ConvPoolLayer(image_shape=(14, 1, 51, 51),
                         filter_shape=(20, 1, 8, 8),
                         poolsize=(2,2)),
@@ -93,24 +60,97 @@ subplot_seperate_configs = False
                 for r in range(run_count)
 
                 [Network([ 
-                    FullyConnectedLayer(n_in=51*51, n_out=100), 
-                    FullyConnectedLayer(n_in=100, n_out=30), 
-                    SoftmaxLayer(n_in=30, n_out=7)], 15), 15, 
-                    0.1778, 0.21, 1.87, 100, 10, ""] 
+                    FullyConnectedLayer(n_in=51*51, n_out=300, activation_fn=ReLU), 
+                    FullyConnectedLayer(n_in=300, n_out=80, activation_fn=ReLU), 
+                    FullyConnectedLayer(n_in=80, n_out=20, activation_fn=ReLU), 
+                    SoftmaxLayer(n_in=20, n_out=7)], 32), 32, 
+                    1.0, 0.0, 0.0, 100, 10, ""] 
                 for r in range(run_count)
- 
+
+                [Network([ 
+                    ConvPoolLayer(image_shape=(32, 1, 51, 51),
+                        filter_shape=(20, 1, 8, 8),
+                        poolsize=(2,2)),
+                    ConvPoolLayer(image_shape=(32, 20, 22, 22),
+                        filter_shape=(40, 20, 7, 7),
+                        poolsize=(2,2)),
+                    ConvPoolLayer(image_shape=(32, 40, 8, 8),
+                        filter_shape=(60, 40, 5, 5),
+                        poolsize=(2,2)),
+                    FullyConnectedLayer(n_in=2*2*60, n_out=30), 
+                    SoftmaxLayer(n_in=30, n_out=7)], 32), 32, 
+                    1.0, 0.0, 0.0, 100, 10, "Pooling, Normal Kernels"] 
+                for r in range(run_count)
+
+                [Network([ 
+                    ConvPoolLayer(image_shape=(32, 1, 51, 51),
+                        filter_shape=(20, 1, 24, 24),
+                        poolsize=(2,2)),
+                    ConvPoolLayer(image_shape=(32, 20, 14, 14),
+                        filter_shape=(40, 20, 9, 9),
+                        poolsize=(2,2)),
+                    FullyConnectedLayer(n_in=3*3*40, n_out=30), 
+                    SoftmaxLayer(n_in=30, n_out=7)], 32), 32, 
+                    1.0, 0.0, 0.0, 100, 10, "Pooling, ~Triple Kernel Sizes"] 
+                for r in range(run_count)
+
+                [Network([ 
+                    ConvPoolLayer(image_shape=(32, 1, 51, 51),
+                        filter_shape=(20, 1, 5, 5),
+                        poolsize=(2,2),
+                        subsample=(2,2)),
+                    ConvPoolLayer(image_shape=(32, 20, 12, 12),
+                        filter_shape=(40, 20, 2, 2),
+                        poolsize=(2,2),
+                        subsample=(2,2)),
+                    FullyConnectedLayer(n_in=3*3*40, n_out=30), 
+                    SoftmaxLayer(n_in=30, n_out=7)], 32), 32, 
+                    1.0, 0.0, 0.0, 100, 10, "Pooling, Normal Kernels, Stride Length 2"] 
+                for r in range(run_count)
+
+                [Network([ 
+                    ConvPoolLayer(image_shape=(32, 1, 51, 51),
+                        filter_shape=(20, 1, 25, 25),
+                        poolsize=(2,2),
+                        subsample=(2,2)),
+                    FullyConnectedLayer(n_in=7*7*20, n_out=30), 
+                    SoftmaxLayer(n_in=30, n_out=7)], 32), 32, 
+                    1.0, 0.0, 0.0, 100, 10, "Pooling, ~Triple Kernel Sizes, Stride Length 2"] 
+                for r in range(run_count)
+
+                [Network([ 
+                    ConvPoolLayer(image_shape=(32, 1, 51, 51),
+                        filter_shape=(20, 1, 24, 24),
+                        poolsize=(1,1)),
+                    ConvPoolLayer(image_shape=(32, 20, 28, 28),
+                        filter_shape=(40, 20, 21, 21),
+                        poolsize=(1,1)),
+                    ConvPoolLayer(image_shape=(32, 40, 8, 8),
+                        filter_shape=(60, 40, 7, 7),
+                        poolsize=(1,1)),
+                    FullyConnectedLayer(n_in=2*2*60, n_out=30), 
+                    SoftmaxLayer(n_in=30, n_out=7)], 32), 32, 
+                    1.0, 0.0, 0.0, 100, 10, "No Pooling, ~Triple Kernel Sizes"] 
+                for r in range(run_count)
+
 '''
 configs = [
             [
                 [Network([ 
-                    ConvPoolLayer(image_shape=(14, 1, 51, 51),
-                        filter_shape=(20, 1, 8, 8),
-                        poolsize=(2,2)),
-                    FullyConnectedLayer(n_in=22*22*20, n_out=2000), 
-                    FullyConnectedLayer(n_in=2000, n_out=100), 
-                    FullyConnectedLayer(n_in=100, n_out=30), 
-                    SoftmaxLayer(n_in=30, n_out=7)], 14), 14, 
-                    1.0, 0.0, 0.0, 100, 10, ""] 
+                    FullyConnectedLayer(n_in=51*51, n_out=300, activation_fn=sigmoid), 
+                    FullyConnectedLayer(n_in=300, n_out=80, activation_fn=sigmoid), 
+                    FullyConnectedLayer(n_in=80, n_out=20, activation_fn=sigmoid), 
+                    SoftmaxLayer(n_in=20, n_out=7)], 32, cost=log_likelihood), 32, 
+                    1.0, 0.0, 0.0, 100, 10, "Log Likelihood + Softmax"] 
+                for r in range(run_count)
+           ],
+            [
+                [Network([ 
+                    FullyConnectedLayer(n_in=51*51, n_out=300, activation_fn=sigmoid), 
+                    FullyConnectedLayer(n_in=300, n_out=80, activation_fn=sigmoid), 
+                    FullyConnectedLayer(n_in=80, n_out=20, activation_fn=sigmoid), 
+                    FullyConnectedLayer(n_in=20, n_out=7, activation_fn=sigmoid)], 32, cost=cross_entropy), 32, 
+                    1.0, 0.0, 0.0, 100, 10, "Cross Entropy + Sigmoid"] 
                 for r in range(run_count)
            ],
         ]
@@ -120,8 +160,10 @@ if update_output:
     #First, we run our configurations
     f = open('{0}_output.txt'.format(output_filename), 'w').close()
     output_dict = {}
+    config_times = []
     
     for config_index, config in enumerate(configs):
+        config_start = time.time()
         for run_index in range(run_count): 
             output_dict[run_index] = {}
             net = config[run_index][0]
@@ -153,6 +195,8 @@ if update_output:
                     scheduler_check_interval=scheduler_check_interval, param_decrease_rate=param_decrease_rate)
         
         #After all runs have executed
+        config_time = time.time() - config_start
+        config_times.append(config_time)
 
         #If there were more than one runs for this configuration, we average them all together for a new one
         #We do this by looping through all our y values for each epoch, and doing our usual mean calculations
@@ -164,16 +208,6 @@ if update_output:
                     avg = sum([output_dict[r][j][o] for r in range(run_count)]) / run_count
                     output_dict[run_count+1][j].append(avg)
 
-        '''
-        for r in range(run_count):
-            for j in range(epochs):
-                for o in range(output_types):
-                    try:
-                        a = json.dumps(output_dict[r][j][o])
-                    except:
-                        print o, type(o)
-        '''
-                    
         #Write the output for this config's runs
         f = open('{0}_output.txt'.format(output_filename), 'a')
         #print type(float(output_dict[0][0][0]))
@@ -183,14 +217,16 @@ if update_output:
         #wrap up by closing our file behind us.
         f.close()
 
-        #Save layers
-        if save_net:
-            print "Saving Neural Network Layers..."
-            net.save('../saved_networks/%s.pkl.gz' % output_filename)
-            f = open('../saved_networks/%s_metadata.txt' % (output_filename), 'w')
-            f.write("{0}\n{1}\n{2}".format(normalize_data[0], normalize_data[1], 47*47))
-            f.close()
+    #Save layers
+    if save_net:
+        print "Saving Neural Network Layers..."
+        net.save('../saved_networks/%s.pkl.gz' % output_filename)
+        f = open('../saved_networks/%s_metadata.txt' % (output_filename), 'w')
+        f.write("{0}\n{1}\n{2}".format(normalize_data[0], normalize_data[1], 47*47))
+        f.close()
 
+    for config_index, config_time in enumerate(config_times):
+        print "Config %i averaged %f seconds" % (config_index, config_time / float(run_count))
 
 if graph_output:
     #Then we graph the results
@@ -220,19 +256,39 @@ if graph_output:
                 y = []
                 for j in config_results[r]:
                     y.append(config_results[r][j][output_type])
+
+                #Decided to make this random colors instead
+                if int(r) >= run_count:
+                    #Our final, average run
+                    if len(configs[config_index][0]) >= 7:
+                        plt.plot(x, y,  lw=2.0, label="%s-%fs" % (configs[config_index][0][7], config_times[config_index]/float(run_count)))
+                    else:
+                        plt.plot(x, y,  lw=2.0)
+                    #plt.plot(x, y, lw=4.0)
+                else:
+                    if run_count == 1:
+                        plt.plot(x, y,  ls='--', label="%s-%fs" % (configs[config_index][0][7], config_times[config_index]/float(run_count)))
+                    else:
+                        plt.plot(x, y,  ls='--')
+
+                '''
                 #The brighter the line, the later the config(argh i wish it was the other way w/e)
                 if int(r) >= run_count:
                     #Our final, average run
-                    if len(configs[config_index]) > 5:
-                        plt.plot(x, y, c=str(config_index*1.0/config_count), lw=2.0, label=configs[config_index][5])
+
+                    if len(configs[config_index][0]) >= 7:
+                        plt.plot(x, y, c=str(config_index*1.0/config_count), lw=2.0, label="%s-%fs" % (configs[config_index][0][7], config_times[config_index]/float(run_count)))
                     else:
                         plt.plot(x, y, c=str(config_index*1.0/config_count), lw=2.0)
                     #plt.plot(x, y, lw=4.0)
                 else:
-                    #plt.plot(x, y, c=np.random.randn(3,1), ls='--')
-                    plt.plot(x, y, c=str(config_index*1.0/config_count), ls='--')
-        if len(configs[config_index]) > 7:
-            plt.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
+                    if run_count == 1:
+                        plt.plot(x, y, c=str(config_index*1.0/config_count), ls='--', label="%s-%fs" % (configs[config_index][0][7], config_times[config_index]/float(run_count)))
+                    else:
+                        plt.plot(x, y, c=np.random.randn(3,1), ls='--')
+                '''
+        #if len(configs[config_index][0]) >= 7:
+        plt.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
         config_index+=1
 
     '''
