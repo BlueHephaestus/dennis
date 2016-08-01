@@ -2,7 +2,7 @@
 import dennis4
 from dennis4 import Network
 from dennis4 import sigmoid, tanh, ReLU, linear
-from dennis4 import log_likelihood, cross_entropy
+from dennis4 import log_likelihood, cross_entropy, quadratic
 from dennis4 import ConvPoolLayer, FullyConnectedLayer, SoftmaxLayer
 
 import json
@@ -17,7 +17,7 @@ training_data, validation_data, test_data, normalize_data = load_data_shared(tra
 #Basically these are our global things
 output_types = 4#DON'T FORGET TO UPDATE THIS WITH THE OTHERS
 run_count = 3
-epochs = 10
+epochs = 200
 training_data_subsections=None#Won't be needing this for our tiny dataset!
 
 #Currently too fast for these to be of much use, we might be able to use them well when we get deeper and more convolutional
@@ -29,16 +29,16 @@ output_training_accuracy=True
 output_validation_accuracy=True
 output_test_accuracy=True
 
-output_title = "LL Cost + Softmax vs CE Cost + Sigmoid"
-output_filename = "ll_vs_ce"
+output_title = "Cost Function and Output Layer Combinations"
+output_filename = "cost_output_layer_combos"
 output_type_names = ["Training Cost", "Training % Accuracy", "Validation % Accuracy", "Test % Accuracy"]
-print_results = True
-print_perc_complete = False
+print_results = False
+print_perc_complete = True
 update_output = True
 graph_output = True
 save_net = False
 literal_print_output = False
-#Will by default subplot the output types, will make config*outputs if that option is specified as well.
+#)Will by default subplot the output types, will make config*outputs if that option is specified as well.
 subplot_seperate_configs = False
 
 #With this setup we don't need redundant config info or data types :D
@@ -46,7 +46,6 @@ subplot_seperate_configs = False
 
 #Gotta make seperate Network instances for each run else the params don't get re-initialized
 
-#Black --> white
 '''
                 [Network([ 
                     ConvPoolLayer(image_shape=(14, 1, 51, 51),
@@ -67,71 +66,6 @@ subplot_seperate_configs = False
                     1.0, 0.0, 0.0, 100, 10, ""] 
                 for r in range(run_count)
 
-                [Network([ 
-                    ConvPoolLayer(image_shape=(32, 1, 51, 51),
-                        filter_shape=(20, 1, 8, 8),
-                        poolsize=(2,2)),
-                    ConvPoolLayer(image_shape=(32, 20, 22, 22),
-                        filter_shape=(40, 20, 7, 7),
-                        poolsize=(2,2)),
-                    ConvPoolLayer(image_shape=(32, 40, 8, 8),
-                        filter_shape=(60, 40, 5, 5),
-                        poolsize=(2,2)),
-                    FullyConnectedLayer(n_in=2*2*60, n_out=30), 
-                    SoftmaxLayer(n_in=30, n_out=7)], 32), 32, 
-                    1.0, 0.0, 0.0, 100, 10, "Pooling, Normal Kernels"] 
-                for r in range(run_count)
-
-                [Network([ 
-                    ConvPoolLayer(image_shape=(32, 1, 51, 51),
-                        filter_shape=(20, 1, 24, 24),
-                        poolsize=(2,2)),
-                    ConvPoolLayer(image_shape=(32, 20, 14, 14),
-                        filter_shape=(40, 20, 9, 9),
-                        poolsize=(2,2)),
-                    FullyConnectedLayer(n_in=3*3*40, n_out=30), 
-                    SoftmaxLayer(n_in=30, n_out=7)], 32), 32, 
-                    1.0, 0.0, 0.0, 100, 10, "Pooling, ~Triple Kernel Sizes"] 
-                for r in range(run_count)
-
-                [Network([ 
-                    ConvPoolLayer(image_shape=(32, 1, 51, 51),
-                        filter_shape=(20, 1, 5, 5),
-                        poolsize=(2,2),
-                        subsample=(2,2)),
-                    ConvPoolLayer(image_shape=(32, 20, 12, 12),
-                        filter_shape=(40, 20, 2, 2),
-                        poolsize=(2,2),
-                        subsample=(2,2)),
-                    FullyConnectedLayer(n_in=3*3*40, n_out=30), 
-                    SoftmaxLayer(n_in=30, n_out=7)], 32), 32, 
-                    1.0, 0.0, 0.0, 100, 10, "Pooling, Normal Kernels, Stride Length 2"] 
-                for r in range(run_count)
-
-                [Network([ 
-                    ConvPoolLayer(image_shape=(32, 1, 51, 51),
-                        filter_shape=(20, 1, 25, 25),
-                        poolsize=(2,2),
-                        subsample=(2,2)),
-                    FullyConnectedLayer(n_in=7*7*20, n_out=30), 
-                    SoftmaxLayer(n_in=30, n_out=7)], 32), 32, 
-                    1.0, 0.0, 0.0, 100, 10, "Pooling, ~Triple Kernel Sizes, Stride Length 2"] 
-                for r in range(run_count)
-
-                [Network([ 
-                    ConvPoolLayer(image_shape=(32, 1, 51, 51),
-                        filter_shape=(20, 1, 24, 24),
-                        poolsize=(1,1)),
-                    ConvPoolLayer(image_shape=(32, 20, 28, 28),
-                        filter_shape=(40, 20, 21, 21),
-                        poolsize=(1,1)),
-                    ConvPoolLayer(image_shape=(32, 40, 8, 8),
-                        filter_shape=(60, 40, 7, 7),
-                        poolsize=(1,1)),
-                    FullyConnectedLayer(n_in=2*2*60, n_out=30), 
-                    SoftmaxLayer(n_in=30, n_out=7)], 32), 32, 
-                    1.0, 0.0, 0.0, 100, 10, "No Pooling, ~Triple Kernel Sizes"] 
-                for r in range(run_count)
 
 '''
 configs = [
@@ -140,8 +74,8 @@ configs = [
                     FullyConnectedLayer(n_in=51*51, n_out=300, activation_fn=sigmoid), 
                     FullyConnectedLayer(n_in=300, n_out=80, activation_fn=sigmoid), 
                     FullyConnectedLayer(n_in=80, n_out=20, activation_fn=sigmoid), 
-                    SoftmaxLayer(n_in=20, n_out=7)], 32, cost=log_likelihood), 32, 
-                    1.0, 0.0, 0.0, 100, 10, "Log Likelihood + Softmax"] 
+                    SoftmaxLayer(n_in=20, n_out=7)], 10, cost=log_likelihood), 10, 
+                    .449, 0.0, 0.0, 100, 10, "Log Likelihood + Softmax"] 
                 for r in range(run_count)
            ],
             [
@@ -149,8 +83,18 @@ configs = [
                     FullyConnectedLayer(n_in=51*51, n_out=300, activation_fn=sigmoid), 
                     FullyConnectedLayer(n_in=300, n_out=80, activation_fn=sigmoid), 
                     FullyConnectedLayer(n_in=80, n_out=20, activation_fn=sigmoid), 
-                    FullyConnectedLayer(n_in=20, n_out=7, activation_fn=sigmoid)], 32, cost=cross_entropy), 32, 
-                    1.0, 0.0, 0.0, 100, 10, "Cross Entropy + Sigmoid"] 
+                    FullyConnectedLayer(n_in=20, n_out=7, activation_fn=sigmoid)], 10, cost=cross_entropy), 10, 
+                    .492, 0.0, 0.0, 100, 10, "Cross Entropy + Sigmoid"] 
+                for r in range(run_count)
+           ],
+
+            [
+                [Network([ 
+                    FullyConnectedLayer(n_in=51*51, n_out=300, activation_fn=sigmoid), 
+                    FullyConnectedLayer(n_in=300, n_out=80, activation_fn=sigmoid), 
+                    FullyConnectedLayer(n_in=80, n_out=20, activation_fn=sigmoid), 
+                    FullyConnectedLayer(n_in=20, n_out=7, activation_fn=linear)], 10, cost=quadratic), 10, 
+                    6.445, 0.0, 0.0, 100, 10, "Quadratic + Linear"] 
                 for r in range(run_count)
            ],
         ]
@@ -258,6 +202,7 @@ if graph_output:
                     y.append(config_results[r][j][output_type])
 
                 #Decided to make this random colors instead
+                if not update_output: config_times = [0 for config in configs]
                 if int(r) >= run_count:
                     #Our final, average run
                     if len(configs[config_index][0]) >= 7:
@@ -271,22 +216,6 @@ if graph_output:
                     else:
                         plt.plot(x, y,  ls='--')
 
-                '''
-                #The brighter the line, the later the config(argh i wish it was the other way w/e)
-                if int(r) >= run_count:
-                    #Our final, average run
-
-                    if len(configs[config_index][0]) >= 7:
-                        plt.plot(x, y, c=str(config_index*1.0/config_count), lw=2.0, label="%s-%fs" % (configs[config_index][0][7], config_times[config_index]/float(run_count)))
-                    else:
-                        plt.plot(x, y, c=str(config_index*1.0/config_count), lw=2.0)
-                    #plt.plot(x, y, lw=4.0)
-                else:
-                    if run_count == 1:
-                        plt.plot(x, y, c=str(config_index*1.0/config_count), ls='--', label="%s-%fs" % (configs[config_index][0][7], config_times[config_index]/float(run_count)))
-                    else:
-                        plt.plot(x, y, c=np.random.randn(3,1), ls='--')
-                '''
         #if len(configs[config_index][0]) >= 7:
         plt.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
         config_index+=1

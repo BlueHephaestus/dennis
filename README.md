@@ -119,7 +119,7 @@ This is the idea I mentioned earlier in the features to add section of MK. 3, co
 7. Use our new minimum HP values to generate new ranges after decreasing step size, if step size is under our threshold then stop for this HP
 8. Go to Number 1 until all HPs are done
 
-This has shown to be way faster and better than me, in fact what I thought was a bug at once was actually the most efficient mini batch size I could have obtained, and it just knew better than me. While it is still in constant development and improvement, it determined the ideal(at least I hope they were ideal) HPs for the shallow network topology I mentioned earlier. Upon comparing with my own hypothesis for the best values, it gained a 20% improvement in test accuracy, the metric upon which I chose it to search them with(although this can be REALLY easily changed, I chose test accuracy because I see that as most relevant. I have considered a combination of accuracies for it to look at). 
+This has shown to be way faster and better than me, in fact what I thought was a bug at once was actually the most efficient mini batch size I could have obtained, and it just knew better than me. While it is still in constant development and improvement, it determined the ideal(at least I hope they were ideal) HPs for the shallow network topology I mentioned earlier. Upon comparing with my own hypothesis for the best values, it gained a 20% improvement in validation accuracy, the metric upon which I chose it to search them with(although this can be REALLY easily changed, I chose test accuracy because I see that as most relevant. I have considered a combination of accuracies for it to look at). 
 
 ###Now back to MK. 4:
 
