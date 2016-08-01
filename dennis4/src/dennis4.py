@@ -17,7 +17,7 @@ import theano.tensor as T
 from theano.tensor.nnet import conv
 from theano.tensor.nnet import softmax
 from theano.tensor import shared_randomstreams
-from theano.tensor.signal import downsample
+from theano.tensor.signal import pool
 
 # Activation functions for neurons
 def linear(z): return z
@@ -37,17 +37,77 @@ if GPU:
 else:
     print "Running under CPU"
 
+class log_likelihood(object):
+    "Return the log-likelihood cost."
+    #-mean( yln(a) )
+    @staticmethod
+    def get_cost(a, y, n):
+
+        #When we do [T.arange(y.shape[0]), y]
+        #It converts our vector of outputs for y to something like
+        #[[0, 1, 2, 3, 4], [7, 2, 5, 6]]
+        #Where y[0] is our index of the value
+        #Where y[1] is the y value
+        return -T.mean(T.log(a)[T.arange(y.shape[0]), y])
+
+class cross_entropy(object):
+    "Return Cross-Entropy Cost"
+    #Best when combined with sigmoid output layer
+    #Consider rewriting this to make sense in terms of matrices
+    @staticmethod
+    def get_cost(a, y, n):
+        #-mean( y*ln(a) + (1-y)*ln(1-a) )
+
+        #Inverted log a is (1-y)ln(1-a)
+        #This is basically taking ln(1-a) and assigning all the ones that are equal to the index of y to 0,
+        #Since we'd have y as [0, 0, 1, 0] then 1-y = [1, 1, 0, 1] so we keep everything the same
+        #Except for those matching the index, which we make = 0
+        inverted_log_a = T.set_subtensor(T.log(1-a)[T.arange(y.shape[0]), y], 0.0)
+        f = theano.function(inputs=[a, y], outputs=inverted_log_a)
+        return -T.mean(
+                    T.log(a)[T.arange(y.shape[0]), y]
+                    +
+                    T.sum(inverted_log_a, axis=1)
+                )
+
+class quadratic(object):
+    "Return Quadratic Cost"
+    @staticmethod
+    def get_cost(a, y, n):
+        #     ( ||y-a||^2 )
+        #mean ( --------- )
+        #     (    2      )
+
+        #a_update = (a, T.set_subtensor(a[T.arange(y.shape[0]), y], 1 - a[T.arange(y.shape[0]), y]))
+        #f = function([y], updates=[a_update])
+
+        #We have each y as a one hot vector like [0, 0, 1, 0] but from everything i've worked out so far it's better to
+        #do 1 - a for the a values that are the same as y, so if we had 
+        #y = [0, 0, 1, 0]
+        #a = [.1, .1, .8, 0]
+        #It's better to get result of 
+        #y-a = [.1, .1, .2, 0], rather than getting massive values that make the cost way bigger if we were to make the .1 = 0-.1 = .9
+        #since we'd then be squaring it elementwise right after, and since the closer it gets to 0, which we want(since it's not the right output)
+        #the higher the value would get, i.e. 0.00001 = .99999^2, that doesn't make any sense at all. I hope i'm not doing something completely wrong,
+        #But what I did was set the new a to be a with our 1-a indices of y.
+        #Then we square, sum on axis 1, get mean, and then * 1/2 in accordance with the earlier equation.
+        new_a = T.set_subtensor(a[T.arange(y.shape[0]), y], 1 - a[T.arange(y.shape[0]), y])
+        f = theano.function(inputs=[a, y], outputs=new_a)
+
+        return T.dot((1.0/2.0), T.mean(T.sum(T.sqr(new_a), axis=1)))
+
 
 #### Main class used to construct and train networks
 class Network(object):
 
-    def __init__(self, layers, mini_batch_size):
+    def __init__(self, layers, mini_batch_size, cost=log_likelihood):
         """Takes a list of `layers`, describing the network architecture, and
         a value for the `mini_batch_size` to be used during training
         by stochastic gradient descent.
 
         """
         self.layers = layers
+        self.cost = cost
         self.mini_batch_size = mini_batch_size
         self.params = [param for layer in self.layers for param in layer.params]
 
@@ -142,7 +202,7 @@ class Network(object):
                 training_x[i*self.mini_batch_size: (i+1)*self.mini_batch_size],
                 self.y:
                 training_y[i*self.mini_batch_size: (i+1)*self.mini_batch_size]
-            })
+            }, on_unused_input='warn')
         train_mb_accuracy = theano.function(
             [i], self.layers[-1].accuracy(self.y),
             givens={
@@ -158,7 +218,7 @@ class Network(object):
                 training_x[i*self.mini_batch_size: (i+1)*self.mini_batch_size],
                 self.y:
                 training_y[i*self.mini_batch_size: (i+1)*self.mini_batch_size]
-            })
+            }, on_unused_input='warn')
         validate_mb_accuracy = theano.function(
             [i], self.layers[-1].accuracy(self.y),
             givens={
@@ -285,7 +345,7 @@ class ConvPoolLayer(object):
     """
 
     def __init__(self, filter_shape, image_shape, subsample=(1,1), poolsize=(2, 2),
-                 activation_fn=sigmoid):
+                 poolmode="max", activation_fn=sigmoid):
         """`filter_shape` is a tuple of length 4, whose entries are the number
         of filters, the number of input feature maps, the filter height, and the
         filter width.
@@ -297,11 +357,14 @@ class ConvPoolLayer(object):
         `poolsize` is a tuple of length 2, whose entries are the y and
         x pooling sizes.
 
+        Just set poolsize = (1, 1) for no pooling.
+
         """
         self.filter_shape = filter_shape
         self.image_shape = image_shape
         self.subsample= subsample
         self.poolsize = poolsize
+        self.poolmode = poolmode
         self.activation_fn=activation_fn
         # initialize weights and biases
         n_out = (filter_shape[0]*np.prod(filter_shape[2:])/np.prod(poolsize))
@@ -323,8 +386,9 @@ class ConvPoolLayer(object):
         conv_out = conv.conv2d(
             input=self.inpt, filters=self.w, filter_shape=self.filter_shape,
             image_shape=self.image_shape, subsample=self.subsample)
-        pooled_out = downsample.max_pool_2d(
-            input=conv_out, ds=self.poolsize, ignore_border=True)
+        #pooled_out = downsample.pool_2d( input=conv_out, ds=self.poolsize, ignore_border=True)
+        pooled_out = pool.pool_2d( 
+            input=conv_out, ds=self.poolsize, ignore_border=True, mode=self.poolmode)
         self.output = self.activation_fn(
             pooled_out + self.b.dimshuffle('x', 0, 'x', 'x'))
         self.output_dropout = self.output # no dropout in the convolutional layers
@@ -360,6 +424,10 @@ class FullyConnectedLayer(object):
         self.output_dropout = self.activation_fn(
             T.dot(self.inpt_dropout, self.w) + self.b)
 
+    def cost(self, net):
+        #net.x.shape[0] is our len(x) aka number of samples
+        return net.cost.get_cost(self.output_dropout, net.y, net.x.shape[0])
+
     def accuracy(self, y):
         "Return the accuracy for the mini-batch."
         return T.mean(T.eq(y, self.y_out))
@@ -389,11 +457,8 @@ class SoftmaxLayer(object):
         self.output_dropout = softmax(T.dot(self.inpt_dropout, self.w) + self.b)
 
     def cost(self, net):
-        "Return the log-likelihood cost."
-        #Might actually understand this, our indices referenced become [0, 1, 2, 3, ... net.y]
-        #So that we get the log of each element in the output_dropout up to net.y
-        #Then do the mean
-        return -T.mean(T.log(self.output_dropout)[T.arange(net.y.shape[0]), net.y])
+        #net.x.shape[0] is our len(x) aka number of samples
+        return net.cost.get_cost(self.output_dropout, net.y, net.x.shape[0])
 
     def accuracy(self, y):
         "Return the accuracy for the mini-batch."
@@ -404,6 +469,7 @@ class SoftmaxLayer(object):
 def size(data):
     "Return the size of the dataset `data`."
     return data[0].get_value(borrow=True).shape[0]
+
 
 def dropout_layer(layer, p_dropout):
     srng = shared_randomstreams.RandomStreams(
