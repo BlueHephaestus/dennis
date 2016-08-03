@@ -159,7 +159,8 @@ class Network(object):
         return self.test_mb_predictions(0)
 
     def SGD(self, output_dict, training_data, epochs, mini_batch_size, eta,
-            validation_data, test_data, lmbda=0.0, momentum_coefficient=0.0,
+            validation_data, test_data, optimization='momentum', 
+            lmbda=0.0, optimization_term1=0.0, optimization_term2=0.0,
             scheduler_check_interval=10, param_decrease_rate=10):#Initialize early stopping stuff to reasonable defaults
         """Train the network using mini-batch stochastic gradient descent."""
         training_x, training_y = training_data
@@ -179,17 +180,115 @@ class Network(object):
         #updates = [(param, param-eta*grad) for param, grad in zip(self.params, grads)]
         #BEGIN MOMENTUM IMPLEMENTATION
 
-        #need to compute our changes relative to params, never the velocities
-        grads = T.grad(cost, self.params)
         velocities = [theano.shared(value=np.zeros(param.get_value().shape, dtype=theano.config.floatX)) for param in self.params]#Initialize our velocities as zeroes(should this be something different than zeroes?)
+        clip_term = 1e-7#For Adagrad, adadelta, etc.
 
-        #I could make the following one line. I realize this. Who the fuck wants to read that colossus though.
-        updates = []
-        for param, velocity, grad in zip(self.params, velocities, grads):
-            new_velocity = (momentum_coefficient*velocity) - (eta*grad)
-            updates.append((velocity, new_velocity))#We fucking forgot this is how to update the velocity as well *facepalm*
-            updates.append((param, param+new_velocity))#Update our params as we were
-        #updates = [(param, param+(momentum_coefficient*velocity-eta*grad)) for param, velocity, grad in zip(self.params, self.velocities, grads)]
+        if optimization == 'vanilla' or optimization == 'momentum' or optimization == 'nesterov':
+            if optimization == 'vanilla': 
+                optimization_term1 = 0.0
+                grads = T.grad(cost, self.params)
+            elif optimization == 'momentum':
+                #need to compute our changes relative to params, never the velocities
+                grads = T.grad(cost, self.params)
+            elif optimization == 'nesterov':
+                grads = T.grad(cost, self.params+optimization_term1*velocities)
+
+            #I could make the following one line. I realize this. Who the fuck wants to read that colossus though.
+            updates = []
+            for param, velocity, grad in zip(self.params, velocities, grads):
+                new_velocity = (optimization_term1*velocity) - (eta*grad)
+                updates.append((velocity, new_velocity))#We fucking forgot this is how to update the velocity as well *facepalm*
+                updates.append((param, param+new_velocity))#Update our params as we were
+
+        elif optimization == 'adagrad':
+            old_grads = [theano.shared(value=np.zeros(param.get_value().shape, dtype=theano.config.floatX)) for param in self.params]#Initialize our history of grads as zeroes(should this be something different than zeroes?)
+            grads = T.grad(cost, self.params)
+            updates = []
+            for param, old_grad, grad in zip(self.params, old_grads, grads):
+                #new_velocity = (optimization_term1*velocity) - (eta*grad)
+                #updates.append((velocity, new_velocity))#We fucking forgot this is how to update the velocity as well *facepalm*
+                adagrad_term = eta/T.sqrt(old_grad + clip_term) * grad
+                updates.append((grad_history, old_grad+T.sqr(grad)))
+                updates.append((param, param-adagrad_term))#Update our params as we were
+        elif optimization == 'adadelta':
+            """
+                     RMS(p_update)
+            p' = p + ------------- * grad
+                       RMS(grad)
+            """
+            #Should these be ones instead of zeros?
+            avg_updates = [theano.shared(value=np.zeros(param.get_value().shape, dtype=theano.config.floatX)) for param in self.params] 
+            avg_grads = [theano.shared(value=np.zeros(param.get_value().shape, dtype=theano.config.floatX)) for param in self.params]
+
+            grads = T.grad(cost, self.params)
+            updates = []
+            for param, avg_update, avg_grad, grad in zip(self.params, avg_update, avg_grads, grads):
+
+                new_avg_update = optimization_term1*(avg_update) + (1.0-optimization_term1)*(param**2)#Our E(p^2) term, does it need something other than param**2 at the end? We can't give the update because we don't have it yet
+                new_avg_grad = optimization_term1*(avg_grad) + (1.0-optimization_term1)*(grad**2)#Our E(g^2) term
+
+                updates.append((avg_update, new_avg_update))
+                updates.append((avg_grad, new_avg_grad))
+
+                new_param = -(T.sqrt(new_avg_update + clip_term)/T.sqrt(new_avg_grad + clip_term)) * grad
+                updates.append((param, param+new_param))
+
+        elif optimization == 'rmsprop':
+            """
+                        -n
+            p' = p + --------- * grad
+                     RMS(grad)
+            """
+            #Should these be ones instead of zeros?
+            avg_grads = [theano.shared(value=np.zeros(param.get_value().shape, dtype=theano.config.floatX)) for param in self.params]
+
+            grads = T.grad(cost, self.params)
+            updates = []
+            for param, avg_grad, grad in zip(self.params, avg_grads, grads):
+
+                new_avg_grad = optimization_term1*(avg_grad) + (1.0-optimization_term1)*(grad**2)#Our E(g^2) term
+
+                updates.append((avg_grad, new_avg_grad))
+
+                new_param = -(eta/T.sqrt(new_avg_grad + clip_term)) * grad
+                updates.append((param, param+new_param))
+
+        elif optimization == 'adam':
+            """
+                            grad
+            modified_grad2 = ----
+                            1-u1
+
+                            grad^2
+            modified_grad2 = ----
+                            1-u2
+
+                            -n
+            p' = p + ------------------ * modified_grad1
+                     RMS(modified_grad2)
+            """
+
+            avg_grads1 = [theano.shared(value=np.zeros(param.get_value().shape, dtype=theano.config.floatX)) for param in self.params]#Normal grad
+            avg_grads2 = [theano.shared(value=np.zeros(param.get_value().shape, dtype=theano.config.floatX)) for param in self.params]#Squared grad
+                
+            grads = T.grad(cost, self.params)
+            updates = []
+            for param, avg_grad1, avg_grad2, grad in zip(self.params, avg_grads1, avg_grads2, grads):
+
+                new_avg_grad1 = optimization_term1*(avg_grad1) + (1.0-optimization_term1)*(grad)
+                new_avg_grad2 = optimization_term1*(avg_grad2) + (1.0-optimization_term1)*(grad**2)
+
+                new_avg_grad1 = new_avg_grad1 / (1.0 - optimization_term1)
+                new_avg_grad2 = new_avg_grad2 / (1.0 - optimization_term2)
+
+                updates.append((avg_grad1, new_avg_grad1))
+                updates.append((avg_grad2, new_avg_grad2))
+
+                new_param = -(eta/T.sqrt(new_avg_grad1 + clip_term)) * new_avg_grad2
+                updates.append((param, param+new_param))
+
+
+
         
         #END MOMENTUM IMPLEMENTATION
         # define functions to train a mini-batch, and to compute the
@@ -202,7 +301,7 @@ class Network(object):
                 training_x[i*self.mini_batch_size: (i+1)*self.mini_batch_size],
                 self.y:
                 training_y[i*self.mini_batch_size: (i+1)*self.mini_batch_size]
-            }, on_unused_input='warn')
+            })
         train_mb_accuracy = theano.function(
             [i], self.layers[-1].accuracy(self.y),
             givens={
@@ -218,7 +317,7 @@ class Network(object):
                 training_x[i*self.mini_batch_size: (i+1)*self.mini_batch_size],
                 self.y:
                 training_y[i*self.mini_batch_size: (i+1)*self.mini_batch_size]
-            }, on_unused_input='warn')
+            })
         validate_mb_accuracy = theano.function(
             [i], self.layers[-1].accuracy(self.y),
             givens={
@@ -245,11 +344,13 @@ class Network(object):
         best_training_accuracy = 0.0
         best_validation_accuracy = 0.0
 
-        if self.early_stopping and self.output_training_cost:
+        #Changed to look at validation % instead of training cost
+        if (self.early_stopping or self.automatic_scheduling) and self.output_validation_accuracy:
             scheduler_results = []
             #Arange so we can do our vector multiplication
             scheduler_x = np.arange(1, scheduler_check_interval+1)
-            param_stop_threshold = eta * param_decrease_rate**-6
+            param_stop_threshold = eta * (param_decrease_rate*10**-6)
+            #param_stop_threshold = mini_batch_size * (param_decrease_rate*10**-6)
 
         for epoch in xrange(epochs):
             for minibatch_index in xrange(num_training_batches):
@@ -298,9 +399,9 @@ class Network(object):
                 if self.output_test_accuracy:
                     print "\tTest Accuracy: %f%%" % (test_accuracy)
 
-            if (self.early_stopping or self.automatic_scheduling) and self.output_training_cost:
+            if (self.early_stopping or self.automatic_scheduling) and self.output_validation_accuracy:
                 #This is where we change things according to the parameter we want to schedule, since I think it would take a hell of a lot to make it automatic for scheduler and param
-                scheduler_results.append(training_cost)
+                scheduler_results.append(validation_accuracy/100.0)#Convert accuracy back to normal (instead of percentage formatting) here
                 if len(scheduler_results) >= scheduler_check_interval:
                     #Do our checks on the last check_interval number of accuracy results(which is the size of the array)
                     #Checks = 
@@ -309,15 +410,30 @@ class Network(object):
                             #where x is each # in our interval 1, 2, 3... interval
                             # and y is each of our accuracies
                     scheduler_avg_slope = (scheduler_check_interval*1.0*sum(scheduler_x*scheduler_results) - sum(scheduler_x) * 1.0 * sum(scheduler_results))/(scheduler_check_interval*sum([x**2 for x in scheduler_x])*1.0 - (sum(scheduler_x))**2)
-                    if scheduler_avg_slope > 0.1:
+                    if scheduler_avg_slope <= 0.0:
                         #This way we keep decreasing until we reach our threshold, at which point we either end this execution(early stopping) or end the decrease of our automatic scheduling
                         if eta <= param_stop_threshold:
+                        #if mini_batch_size <= param_stop_threshold:
+                            #If we don't have early stopping it will just keep training on the lowest value we allow, at this point.
+                            #Otherwise,
                             if self.early_stopping:
+                                #Fill in the rest of the output dict with our last values so we don't have to run extra configs
+                                for remainder_epoch in range(epochs-(epoch+1)):
+                                    if self.output_training_cost:
+                                        output_dict[self.run_index][remainder_epoch].append(training_cost)
+                                    if self.output_training_accuracy:
+                                        output_dict[self.run_index][remainder_epoch].append(training_accuracy)
+                                    if self.output_validation_accuracy:
+                                        output_dict[self.run_index][remainder_epoch].append(validation_accuracy)
+                                    if self.output_test_accuracy:
+                                        output_dict[self.run_index][remainder_epoch].append(test_accuracy)
                                 print "Early stopped with low threshold"
                                 break
                         else:
                             eta /= param_decrease_rate
+                            #mini_batch_size /= param_decrease_rate
                             print "Reducing eta by factor of {0} to {1}".format(param_decrease_rate, eta)
+                            #print "Reducing Mini-Batch Size by factor of {0} to {1}".format(param_decrease_rate, mini_batch_size)
 
                         #If we decrease the param, we reset the interval by clearing our scheduler's results
                         scheduler_results = []
