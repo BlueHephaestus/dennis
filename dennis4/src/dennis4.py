@@ -9,6 +9,7 @@ Please read the README for all the info
 # Standard library
 import cPickle, pickle
 import gzip
+import sys
 
 # Third-party libraries
 import numpy as np
@@ -143,18 +144,15 @@ class Network(object):
 
 
     def predict(self, test_data):
-        test_x = test_data
+        test_x, test_y = test_data
 
         i = T.lscalar() # mini-batch index
-        #self.x = test_x[0]
-        #print self.x[0]
-        #print test_x[0][0].eval()
 
         self.test_mb_predictions = theano.function(
-            [i], [self.layers[-1].y_out, self.layers[-1].output],
+            [i], self.layers[-1].y_out,
             givens={
-                self.x: test_x[i]
-            })
+                self.x: test_x[:]
+            }, on_unused_input='warn')
 
         return self.test_mb_predictions(0)
 
@@ -180,25 +178,55 @@ class Network(object):
         #updates = [(param, param-eta*grad) for param, grad in zip(self.params, grads)]
         #BEGIN MOMENTUM IMPLEMENTATION
 
-        velocities = [theano.shared(value=np.zeros(param.get_value().shape, dtype=theano.config.floatX)) for param in self.params]#Initialize our velocities as zeroes(should this be something different than zeroes?)
         clip_term = 1e-7#For Adagrad, adadelta, etc.
 
-        if optimization == 'vanilla' or optimization == 'momentum' or optimization == 'nesterov':
-            if optimization == 'vanilla': 
-                optimization_term1 = 0.0
-                grads = T.grad(cost, self.params)
-            elif optimization == 'momentum':
-                #need to compute our changes relative to params, never the velocities
-                grads = T.grad(cost, self.params)
-            elif optimization == 'nesterov':
-                grads = T.grad(cost, self.params+optimization_term1*velocities)
+        if optimization == 'vanilla': 
+            grads = T.grad(cost, self.params)
+            updates = []
+            for param, grad in zip(self.params, grads):
+                updates.append((param, param-eta*grad))#Update our params as we were
 
+        elif optimization == 'momentum':
+            #need to compute our changes relative to params, never the velocities
+            velocities = [theano.shared(value=np.zeros(param.get_value().shape, dtype=theano.config.floatX)) for param in self.params]#Initialize our velocities as zeroes(should this be something different than zeroes?)
+            grads = T.grad(cost, self.params)
             #I could make the following one line. I realize this. Who the fuck wants to read that colossus though.
             updates = []
             for param, velocity, grad in zip(self.params, velocities, grads):
                 new_velocity = (optimization_term1*velocity) - (eta*grad)
                 updates.append((velocity, new_velocity))#We fucking forgot this is how to update the velocity as well *facepalm*
                 updates.append((param, param+new_velocity))#Update our params as we were
+
+        elif optimization == 'nesterov':
+            #Nesterov's Accelerated Gradient aka NAG
+            #nag_terms = [theano.shared(value=np.zeros(param.get_value().shape, dtype=theano.config.floatX)) for param in self.params]#Initialize our velocities as zeroes(should this be something different than zeroes?)
+            #nag_terms = theano.shared(value=[np.zeros(param.get_value().shape, dtype=theano.config.floatX) for param in self.params])#Initialize our velocities as zeroes(should this be something different than zeroes?)
+            #nag_terms = theano.shared(value=np.zeros(self.params, dtype=theano.config.floatX))
+            '''
+            self.b = theano.shared(
+                np.zeros((n_out,), dtype=theano.config.floatX),
+                name='b', borrow=True)
+            '''
+            #nag_terms = [theano.shared(np.zeros_like(param, dtype=theano.config.floatX), borrow=True) for param in self.params]
+            #nag_terms = [theano.shared(np.zeros_like(param, dtype=theano.config.floatX), borrow=True) for param in self.params]
+            nag_terms = [T.zeros_like(self.params) for param in self.params]
+
+            print type(self.params), type(self.params[0]), type(self.params[0][0])
+            print type(nag_terms), type(nag_terms[0]), type(nag_terms[0][0])
+
+            
+            nag_params = [param + optimization_term1*nag_term for param, nag_term in zip(self.params, nag_terms)]
+            #nag_params = theano.scan(lambda p, n: p + optimization_term1*n, sequences=[self.params, nag_terms])
+            #f = theano.function(inputs=[self.params, nag_terms], outputs=nag_params)
+
+            grads = T.grad(cost, nag_params, disconnected_inputs='warn')
+
+
+            updates = []
+            for param, nag_term, grad in zip(self.params, nag_terms, grads):
+                updates.append((nag_term, optimization_term1*nag_term-eta*grad))
+                updates.append((param, param+nag_term))#Update our params as we were
+
 
         elif optimization == 'adagrad':
             old_grads = [theano.shared(value=np.zeros(param.get_value().shape, dtype=theano.config.floatX)) for param in self.params]#Initialize our history of grads as zeroes(should this be something different than zeroes?)
@@ -208,8 +236,9 @@ class Network(object):
                 #new_velocity = (optimization_term1*velocity) - (eta*grad)
                 #updates.append((velocity, new_velocity))#We fucking forgot this is how to update the velocity as well *facepalm*
                 adagrad_term = eta/T.sqrt(old_grad + clip_term) * grad
-                updates.append((grad_history, old_grad+T.sqr(grad)))
+                updates.append((old_grad, old_grad+T.sqr(grad)))
                 updates.append((param, param-adagrad_term))#Update our params as we were
+
         elif optimization == 'adadelta':
             """
                      RMS(p_update)
@@ -385,19 +414,21 @@ class Network(object):
             if self.print_perc_complete:
                 #Get our percentage completion
                 perc_complete = (((self.config_index)/(float(self.config_count))) + (((self.run_index)/float(self.run_count))/float(self.config_count)) + (((epoch/float(epochs))/float(self.run_count))/float(self.config_count))) * 100.0
-                print "%f%% Complete: Config %i/%i, Run %i/%i, Epoch %i/%i" % (perc_complete, self.config_index+1, self.config_count, self.run_index+1, self.run_count, epoch+1, epochs)
+                sys.stdout.write("\r%f%% Complete: Config %i/%i, Run %i/%i, Epoch %i/%i" % (perc_complete, self.config_index+1, self.config_count, self.run_index+1, self.run_count, epoch+1, epochs))
             else:
-                print "Config %i/%i, Run %i/%i, Epoch %i/%i" % (self.config_index+1, self.config_count, self.run_index+1, self.run_count, epoch+1, epochs)
+                sys.stdout.write("\rConfig %i/%i, Run %i/%i, Epoch %i/%i" % (self.config_index+1, self.config_count, self.run_index+1, self.run_count, epoch+1, epochs))
+            sys.stdout.flush()
 
             if self.print_results:
+                print ""
                 if self.output_training_cost:
-                    print "\tTraining Cost: %f" % (training_cost)
+                    print"\tTraining Cost: %f" % (training_cost)
                 if self.output_training_accuracy:
-                    print "\tTraining Accuracy: %f%%" % (training_accuracy)
+                    print"\tTraining Accuracy: %f%%" % (training_accuracy)
                 if self.output_validation_accuracy:
-                    print "\tValidation Accuracy: %f%%" % (validation_accuracy)
+                    print"\tValidation Accuracy: %f%%" % (validation_accuracy)
                 if self.output_test_accuracy:
-                    print "\tTest Accuracy: %f%%" % (test_accuracy)
+                    print"\tTest Accuracy: %f%%" % (test_accuracy)
 
             if (self.early_stopping or self.automatic_scheduling) and self.output_validation_accuracy:
                 #This is where we change things according to the parameter we want to schedule, since I think it would take a hell of a lot to make it automatic for scheduler and param
@@ -427,12 +458,12 @@ class Network(object):
                                         output_dict[self.run_index][remainder_epoch].append(validation_accuracy)
                                     if self.output_test_accuracy:
                                         output_dict[self.run_index][remainder_epoch].append(test_accuracy)
-                                print "Early stopped with low threshold"
+                                print "\nEarly stopped with low threshold"
                                 break
                         else:
                             eta /= param_decrease_rate
                             #mini_batch_size /= param_decrease_rate
-                            print "Reducing eta by factor of {0} to {1}".format(param_decrease_rate, eta)
+                            print "\nReducing eta by factor of {0} to {1}".format(param_decrease_rate, eta)
                             #print "Reducing Mini-Batch Size by factor of {0} to {1}".format(param_decrease_rate, mini_batch_size)
 
                         #If we decrease the param, we reset the interval by clearing our scheduler's results
@@ -440,10 +471,9 @@ class Network(object):
                     else:
                         #remove the first element
                         scheduler_results.pop(0)
-            '''
-            '''
         #Using our +1s for pretty print progress
-        print "Config %i/%i, Run %i/%i Completed." % (self.config_index+1, self.config_count, self.run_index+1, self.run_count)
+        #print "\nConfig %i/%i, Run %i/%i Completed." % (self.config_index+1, self.config_count, self.run_index+1, self.run_count)
+        print " - Completed."#Add to the end of our completed run progress
         return output_dict
 
     def save(self, filename):
