@@ -46,18 +46,22 @@ def get_mfccs(data_dir):
         input_fname = data_dir + "/" + sample
         sample = get_name(sample)
 
-        if sample not in label_dict:
-            label_dict[sample] = label_total
-            label_total+=1
-            print label_dict
-        label_num = label_dict[sample] 
+        '''
+        NO longer using misc, but don't want to discard of samples. will do so when moving to a new mk
+        '''
+        if sample != "misc":
+            if sample not in label_dict:
+                label_dict[sample] = label_total
+                label_total+=1
+                print label_dict
+            label_num = label_dict[sample] 
 
-        y, sr = librosa.load(input_fname)
-        mfcc = librosa.feature.mfcc(y=y, sr=sr, n_mfcc=n_mfcc).flatten()
-        mfcc = np.resize(mfcc, (max_mfcc_len))
+            y, sr = librosa.load(input_fname)
+            mfcc = librosa.feature.mfcc(y=y, sr=sr, n_mfcc=n_mfcc).flatten()
+            mfcc = np.resize(mfcc, (max_mfcc_len))
 
-        data[0][sample_num] = mfcc
-        data[1][sample_num] = label_num
+            data[0][sample_num] = mfcc
+            data[1][sample_num] = label_num
 
     return data
 

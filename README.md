@@ -88,13 +88,13 @@ Features to add:
 6. Test scheduling now that accuracy is actually changing with reasonable intervals
 7. Improve automatic scheduling to work better with automation
 
-##MK. 4
+##MK. 4 - Current Best Validation Accuracy = 91% 
 
 Due to what I believe is largely a lack of sufficient data and also likely computational power(or an algorithm for generalization >= the brain's), I left MK. 3 and decided on the design for MK. 4.
 
 Instead of attempting to do a 5000 vocabulary speech recognition of ~5 samples each, I took after MK. 2 & MK. 1, recording 60 samples of four more words, and 120 of random miscellaneous words. Supplemented with the 60 each of the words from MK. 1 and MK. 2, the following is the vocab class - sample:
 
-0. Misc -     120
+0. Misc -     120 - UPDATE: Removed this.
 1. Shuffle -  60
 2. Dennis -   60
 3. Next -     60
@@ -104,7 +104,9 @@ Instead of attempting to do a 5000 vocabulary speech recognition of ~5 samples e
 
 Totalling 480 raw samples, which I expanded with speed factors of .9 and 1.1 as earlier, and transformed to MFCCs, giving 1440 MFCC samples. 
 
-I will post the results soon, however the best Test Accuracy is ~70%. This type of topology is much faster and easier to train, while also giving me 6 voice commands to control my music with. While I would very much like to have gotten MK. 3 working, I believe that to be infeasible. I am confident that I will be able to get to a < 5% error margin on test accuracy with this layout, especially considering the 70% accuracy was on a two-hidden-layer network with 100 and 30 neurons respectively. Before I move on to the features to add, there is one that I believe warrants it's own subheading:
+I will post the results soon, however the best Validation & Test Accuracy is ~70%. This type of topology is much faster and easier to train, while also giving me 6 voice commands to control my music with. While I would very much like to have gotten MK. 3 working, I believe that to be infeasible. I am confident that I will be able to get to a < 5% error margin on test accuracy with this layout, especially considering the 70% accuracy was on a two-hidden-layer network with 100 and 30 neurons respectively. Before I move on to the features to add, there is one that I believe warrants it's own subheading:
+
+UPDATE: Have recently obtained Validation Accuracy of 91% on Convolutional-AvgPooling Layer with Kernels of size 4x4, Stride length of 1, and Average Pooling (excluding padding) size of 2x2, followed by Fully Connected Sigmoid layers of size 300 and 30, followed by Softmax output layer for the now 6 outputs. Was trained for 800 epochs with a learning rate exponentially decreasing schedule of .17*e^(-0.005x), mini batch size of 56, l2 regularization rate of 3.0, and dropout percentage of 0.2
 
 ###CHO - Cool Hyper-Parameter Optimizer
 
@@ -127,20 +129,27 @@ Features Added:
 
 1. CHO
 2. Saving and Loading Networks
+3. Changed early stopping to look at Validation Accuracy instead of Training Cost - Note: Can be easily changed just by replacing the parameter it checks for and measures (3 lines) in dennis4.py. I do not know how I could easily make this customizable within the config, and I do not think it is a priority considering it's almost always based on validation accuracy, afaik
+4. Enabled automatic scheduling without early stopping so that runs can be easily compared
+5. Actual implementation of live audio being fed into saved networks(shouldn't be a problem with ensemble, though I haven't obtained good enough results with them to implement it yet). Won't be used until I get within 5% test error margin.
+6. Added rudimentary exponential learning rate decrease, added forced scheduling intervals that decrease every n epochs, changed automatic scheduling back to judging validation accuracy.
+7. CHO - Can judge on one run, however not recommended since repetition + averaging is often much more accurate.
+8. Now using added static to the beginning of every sample before expanding so as to get a better estimate of test data, for all experiements henceforth.
+9. Implemented ensemble networks in main_config.py, no random forest features yet, however. All trained on same subsets.
+10. Removed Misc as it seemed infeasible to work on all the features to make it live, not including accidentally saying it's name and such things, in favor of a Press-key-speak system. It also is likely to interfere with future features, and is not a good way to protect against the problems I added it to prevent. Accuracy on Validation and Test Accuracy increased slightly.
+
 
 Features to Add:
 
-1. Actual implementation of live audio being fed into saved networks, currently only gets one sample at a time but this should not be a problem
-2. Continue optimizing HPs for experimental topologies, thanks to CHO I can work on other features while he handles that.
-3. I may still improve scheduling, however I may just spend that time improving CHO instead.
-4. CHO - I will be adding more efficient step ranges to minimize the amount of configs that must be run like a human would do
-5. CHO - Work when there is only one run instead of only when run_count > 1 and uses average; This will be fixed very soon because new test topologies take FOREVER
-6. CHO - Possibly remove some step calculations from the end if #3 works out
-7. Possibly experiment with different types of Fast Fourier Transforms outside of MFCCs
-8. Possibly experiment with different types of data expansion on top of current, such as background noise
-9. Test Ensemble networks
-10. Test more deep and convolutional setups
+1. Continue optimizing HPs for experimental topologies, thanks to CHO I can work on other features while he handles that.
+2. CHO - I will be adding more efficient step ranges to minimize the amount of configs that must be run like a human would do
+3. Possibly experiment with different types of Fast Fourier Transforms outside of MFCCs
 
+And finally, I am starting college in a few days, and have also started working with some graduate students there. With this in mind (as well as classes and such), I will almost definitely either table/stop this project for now, or just spend very little time on it, as the opportunities and work there are far more important than this. They're also machine-learning related, which makes it even better! 
+
+But basically, if you see this repo and think "Oh it's ded rip", just contact me with my email up at the top for any questions or (yet again) if you need the data I used. Chances are, i'm just busy with other things / moving on. See ya!
+
+-Dark Element / Blake Edwards
 
 ##Credit to Michael Nielsen for his [awesome book on machine learning](http://neuralnetworksanddeeplearning.com/chap1.html), and also for his [extremely helpful and well-written neural network and machine learning code](https://github.com/mnielsen/neural-networks-and-deep-learning/). I can't thank him enough for getting me started and for the resources he has provided to everyone.
 

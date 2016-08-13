@@ -159,12 +159,13 @@ class Network(object):
     def SGD(self, output_dict, training_data, epochs, mini_batch_size, eta,
             validation_data, test_data, optimization='momentum', 
             lmbda=0.0, optimization_term1=0.0, optimization_term2=0.0,
-            scheduler_check_interval=10, param_decrease_rate=10):#Initialize early stopping stuff to reasonable defaults
+            forced_scheduler_interval=None, scheduler_check_interval=10, param_decrease_rate=10):#Initialize early stopping stuff to reasonable defaults
         """Train the network using mini-batch stochastic gradient descent."""
         training_x, training_y = training_data
         validation_x, validation_y = validation_data
         test_x, test_y = test_data
 
+        initial_eta = eta
         # compute number of minibatches for training, validation and testing
         num_training_batches = size(training_data)/mini_batch_size
         num_validation_batches = size(validation_data)/mini_batch_size
@@ -233,8 +234,6 @@ class Network(object):
             grads = T.grad(cost, self.params)
             updates = []
             for param, old_grad, grad in zip(self.params, old_grads, grads):
-                #new_velocity = (optimization_term1*velocity) - (eta*grad)
-                #updates.append((velocity, new_velocity))#We fucking forgot this is how to update the velocity as well *facepalm*
                 adagrad_term = eta/T.sqrt(old_grad + clip_term) * grad
                 updates.append((old_grad, old_grad+T.sqr(grad)))
                 updates.append((param, param-adagrad_term))#Update our params as we were
@@ -251,7 +250,7 @@ class Network(object):
 
             grads = T.grad(cost, self.params)
             updates = []
-            for param, avg_update, avg_grad, grad in zip(self.params, avg_update, avg_grads, grads):
+            for param, avg_update, avg_grad, grad in zip(self.params, avg_updates, avg_grads, grads):
 
                 new_avg_update = optimization_term1*(avg_update) + (1.0-optimization_term1)*(param**2)#Our E(p^2) term, does it need something other than param**2 at the end? We can't give the update because we don't have it yet
                 new_avg_grad = optimization_term1*(avg_grad) + (1.0-optimization_term1)*(grad**2)#Our E(g^2) term
@@ -374,7 +373,7 @@ class Network(object):
         best_validation_accuracy = 0.0
 
         #Changed to look at validation % instead of training cost
-        if (self.early_stopping or self.automatic_scheduling) and self.output_validation_accuracy:
+        if (self.early_stopping or self.automatic_scheduling or forced_scheduler_interval) and self.output_validation_accuracy:
             scheduler_results = []
             #Arange so we can do our vector multiplication
             scheduler_x = np.arange(1, scheduler_check_interval+1)
@@ -430,50 +429,76 @@ class Network(object):
                 if self.output_test_accuracy:
                     print"\tTest Accuracy: %f%%" % (test_accuracy)
 
-            if (self.early_stopping or self.automatic_scheduling) and self.output_validation_accuracy:
+            if (self.early_stopping or self.automatic_scheduling or forced_scheduler_interval) and self.output_validation_accuracy:
                 #This is where we change things according to the parameter we want to schedule, since I think it would take a hell of a lot to make it automatic for scheduler and param
-                scheduler_results.append(validation_accuracy/100.0)#Convert accuracy back to normal (instead of percentage formatting) here
-                if len(scheduler_results) >= scheduler_check_interval:
-                    #Do our checks on the last check_interval number of accuracy results(which is the size of the array)
-                    #Checks = 
-                        #get average slope of interval
-                            #(interval * sigma(x*y) - sigma(x)*sigma(y)) / (interval * sigma(x**2) - (sigma(x))**2)
-                            #where x is each # in our interval 1, 2, 3... interval
-                            # and y is each of our accuracies
-                    scheduler_avg_slope = (scheduler_check_interval*1.0*sum(scheduler_x*scheduler_results) - sum(scheduler_x) * 1.0 * sum(scheduler_results))/(scheduler_check_interval*sum([x**2 for x in scheduler_x])*1.0 - (sum(scheduler_x))**2)
-                    if scheduler_avg_slope <= 0.0:
-                        #This way we keep decreasing until we reach our threshold, at which point we either end this execution(early stopping) or end the decrease of our automatic scheduling
-                        if eta <= param_stop_threshold:
-                        #if mini_batch_size <= param_stop_threshold:
-                            #If we don't have early stopping it will just keep training on the lowest value we allow, at this point.
-                            #Otherwise,
-                            if self.early_stopping:
-                                #Fill in the rest of the output dict with our last values so we don't have to run extra configs
-                                for remainder_epoch in range(epochs-(epoch+1)):
-                                    if self.output_training_cost:
-                                        output_dict[self.run_index][remainder_epoch].append(training_cost)
-                                    if self.output_training_accuracy:
-                                        output_dict[self.run_index][remainder_epoch].append(training_accuracy)
-                                    if self.output_validation_accuracy:
-                                        output_dict[self.run_index][remainder_epoch].append(validation_accuracy)
-                                    if self.output_test_accuracy:
-                                        output_dict[self.run_index][remainder_epoch].append(test_accuracy)
-                                print "\nEarly stopped with low threshold"
-                                break
-                        else:
+                if forced_scheduler_interval:
+                    """
+                    if (epoch == 494 or epoch == 544 or epoch == 640 or epoch == 690 or epoch == 793):
+                        eta /= param_decrease_rate
+                        print "\nReducing eta by factor of {0} to {1}".format(param_decrease_rate, eta)
+                    """
+                    """
+                    if eta > param_stop_threshold:
+                        if (epoch+1) % forced_scheduler_interval == 0:
                             eta /= param_decrease_rate
-                            #mini_batch_size /= param_decrease_rate
                             print "\nReducing eta by factor of {0} to {1}".format(param_decrease_rate, eta)
-                            #print "Reducing Mini-Batch Size by factor of {0} to {1}".format(param_decrease_rate, mini_batch_size)
+                    """
+                    eta = initial_eta*np.exp(-.015*epoch)
+                    #print ''
+                    #print eta
+                else:
 
-                        #If we decrease the param, we reset the interval by clearing our scheduler's results
-                        scheduler_results = []
-                    else:
-                        #remove the first element
-                        scheduler_results.pop(0)
-        #Using our +1s for pretty print progress
-        #print "\nConfig %i/%i, Run %i/%i Completed." % (self.config_index+1, self.config_count, self.run_index+1, self.run_count)
+                    scheduler_results.append(validation_accuracy/100.0)#Convert accuracy back to normal (instead of percentage formatting) here
+                    if len(scheduler_results) >= scheduler_check_interval:
+                        #Do our checks on the last check_interval number of accuracy results(which is the size of the array)
+                        #Checks = 
+                            #get average slope of interval
+                                #(interval * sigma(x*y) - sigma(x)*sigma(y)) / (interval * sigma(x**2) - (sigma(x))**2)
+                                #where x is each # in our interval 1, 2, 3... interval
+                                # and y is each of our accuracies
+                        scheduler_avg_slope = (scheduler_check_interval*1.0*sum(scheduler_x*scheduler_results) - sum(scheduler_x) * 1.0 * sum(scheduler_results))/(scheduler_check_interval*sum([x**2 for x in scheduler_x])*1.0 - (sum(scheduler_x))**2)
+                        if scheduler_avg_slope <= 0.0:
+                            #This way we keep decreasing until we reach our threshold, at which point we either end this execution(early stopping) or end the decrease of our automatic scheduling
+                            if eta <= param_stop_threshold:
+                            #if mini_batch_size <= param_stop_threshold:
+                                #If we don't have early stopping it will just keep training on the lowest value we allow, at this point.
+                                #Otherwise,
+                                if self.early_stopping:
+                                    #Fill in the rest of the output dict with our last values so we don't have to run extra configs
+                                    for remainder_epoch in range(epochs-(epoch+1)):
+                                        if self.output_training_cost:
+                                            output_dict[self.run_index][remainder_epoch].append(training_cost)
+                                        if self.output_training_accuracy:
+                                            output_dict[self.run_index][remainder_epoch].append(training_accuracy)
+                                        if self.output_validation_accuracy:
+                                            output_dict[self.run_index][remainder_epoch].append(validation_accuracy)
+                                        if self.output_test_accuracy:
+                                            output_dict[self.run_index][remainder_epoch].append(test_accuracy)
+                                    print "\nEarly stopped with low threshold"
+                                    break
+                            else:
+                                eta /= param_decrease_rate
+                                #mini_batch_size /= param_decrease_rate
+                                print "\nReducing eta by factor of {0} to {1}".format(param_decrease_rate, eta)
+                                #print "Reducing Mini-Batch Size by factor of {0} to {1}".format(param_decrease_rate, mini_batch_size)
+
+                            #If we decrease the param, we reset the interval by clearing our scheduler's results
+                            scheduler_results = []
+                        else:
+                            #remove the first element
+                            scheduler_results.pop(0)
         print " - Completed."#Add to the end of our completed run progress
+
+        #Because i'm impatient
+        if self.output_training_cost:
+            print"\tTraining Cost: %f" % (training_cost)
+        if self.output_training_accuracy:
+            print"\tTraining Accuracy: %f%%" % (training_accuracy)
+        if self.output_validation_accuracy:
+            print"\tValidation Accuracy: %f%%" % (validation_accuracy)
+        if self.output_test_accuracy:
+            print"\tTest Accuracy: %f%%" % (test_accuracy)
+
         return output_dict
 
     def save(self, filename):
