@@ -18,8 +18,8 @@ from output_grapher import *
 import sms_notifications
 
 #General
-run_count =                 2#Number of times to run the same config over again to get an accurate representation of it's accuracy and results
-epochs =                    4#Number of times we do a full training loop
+run_count =                 3#Number of times to run the same config over again to get an accurate representation of it's accuracy and results
+epochs =                    3000#Number of times we do a full training loop
 training_data_subsections=  None#Enable this to get accuracy quicker. Good for initially figuring stuff out and saving time in experimentation
 
 #Percentage of entire data for each subset
@@ -33,14 +33,15 @@ whole_normalization =       True#To normalize on the entire training data. Will 
 #Scheduling
 early_stopping=             False#Enable to stop training after our schedule parameter reaches a stop threshold, and fill in the remaining space with last obtained value
 automatic_scheduling=       True#Enable to automatically judge the average slope of our validation % over the past scheduler_check_interval epochs and decrease by param_decrease_rate if it is < 0.0
+forced_scheduler_interval = 150#If this isn't none it will ignore automatic scheduling and automatically decrease every n epochs
 scheduler_check_interval =  50#Period to look back for judging if it's time to automatically schedule
 param_decrease_rate =       2#Amount to decrease by, i.e. (eta /= param_decrease_rate) if our average slope in our past scheduler_check_interval is < 0.0
 
 #Outputs
-output_training_cost=       False
+output_training_cost=       True
 output_training_accuracy=   False
 output_validation_accuracy= True
-output_test_accuracy=       True
+output_test_accuracy=       False
 
 #Ensemble
 training_ensemble =         False
@@ -48,7 +49,7 @@ training_ensemble =         False
 #Output
 output_title = "Miscellaneous Comparisons"#Title to show on the graph if graphing output
 output_filename = "misc_comparisons"#The filename to save our output, and layers if we choose to save net
-print_results =             True#Print our accuracies
+print_results =             False#Print our accuracies
 print_perc_complete =       False#Give a live percentage until completions
 update_output =             True#Actually update the output with our new configs. Don't disable this unless you just want to graph again or use pre-existing output
 graph_output =              True#Graphs the results with output_grapher.py
@@ -61,6 +62,8 @@ subplot_seperate_configs =  False#Seperate the config graphs into different subp
 #With our values set, we get the data:
 training_data, validation_data, test_data = get_data_subsets(p_training = p_training_data, p_validation = p_validation_data, p_test = p_test_data, archive_dir=archive_dir)
 training_data, validation_data, test_data, normalize_data = load_data_shared(training_data=training_data, validation_data=validation_data, test_data=test_data, normalize_x=whole_normalization)
+input_dims = 51*51
+output_dims = 6
 
 #Gotta make seperate Network instances for each run else the params don't get re-initialized
 
@@ -87,35 +90,66 @@ Miscellaneous configs that I don't want to have to write again
                     0.138, 'vanilla', 0.0, 0.0, 0.0, scheduler_check_interval, param_decrease_rate, "control"] 
                 for r in range(run_count)
            ],
+            [
+                [Network([ 
+                    FullyConnectedLayer(n_in=input_dims, n_out=300, activation_fn=sigmoid, p_dropout=0), 
+                    FullyConnectedLayer(n_in=300, n_out=80, activation_fn=sigmoid, p_dropout=0), 
+                    FullyConnectedLayer(n_in=80, n_out=20, activation_fn=sigmoid, p_dropout=0), 
+                    FullyConnectedLayer(n_in=20, n_out=output_dims, activation_fn=linear, p_dropout=0)], 9, cost=quadratic), 9, 
+                    .29, 'momentum', 0.257, 0.0, 0, 50, 2, "Quadratic + Linear + Sigmoid"] 
+                for r in range(run_count)
+           ],
 
-            ADAGRAD 
+           [
+                [Network([ 
+                    ConvPoolLayer(image_shape=(56, 1, 51, 51),
+                        filter_shape=(64, 1, 4, 4),
+                        poolsize=(2,2),
+                        poolmode='average_exc_pad'),
+                    ConvPoolLayer(image_shape=(56, 64, 24, 24),
+                        filter_shape=(64, 64, 5, 5),
+                        poolsize=(2,2),
+                        poolmode='average_exc_pad'),
+                    FullyConnectedLayer(n_in=10*10*64, n_out=300, activation_fn=sigmoid, p_dropout=0.0), 
+                    FullyConnectedLayer(n_in=300, n_out=30, activation_fn=sigmoid, p_dropout=0.2), 
+                    SoftmaxLayer(n_in=30, n_out=output_dims, p_dropout=0.0)], 56, cost=log_likelihood), 56, 
+                    .17, 'momentum', 0.0, 0.0, 3.0, scheduler_check_interval, param_decrease_rate, "l=3.0 d=0.2 new 2conv layout"] 
+                for r in range(run_count)
+           ],
             [
                 [Network([ 
                     FullyConnectedLayer(n_in=51*51, n_out=300, activation_fn=sigmoid), 
                     FullyConnectedLayer(n_in=300, n_out=80, activation_fn=sigmoid), 
                     FullyConnectedLayer(n_in=80, n_out=20, activation_fn=sigmoid), 
                     SoftmaxLayer(n_in=20, n_out=7)], 10, cost=log_likelihood), 10, 
-                    .35, 'adagrad', 0.9, 0.0, 0.0, 50, 2, "LL + Softmax + Sigmoid"] 
+                    0.001, 'rmsprop', 0.9, 0.0, 0.0, 50, 2, "LL + Softmax + Sigmoid"] 
                 for r in range(run_count)
            ],
             [
                 [Network([ 
-                    FullyConnectedLayer(n_in=51*51, n_out=300, activation_fn=linear), 
-                    FullyConnectedLayer(n_in=300, n_out=80, activation_fn=linear), 
-                    FullyConnectedLayer(n_in=80, n_out=20, activation_fn=linear), 
-                    SoftmaxLayer(n_in=20, n_out=7)], 94, cost=log_likelihood), 94, 
-                    .013, 'momentum', 0.28, 0.0, 1.654, 50, 2, "LL + Softmax + Linear"] 
+                    FullyConnectedLayer(n_in=51*51, n_out=300, activation_fn=sigmoid), 
+                    FullyConnectedLayer(n_in=300, n_out=80, activation_fn=sigmoid), 
+                    FullyConnectedLayer(n_in=80, n_out=20, activation_fn=sigmoid), 
+                    SoftmaxLayer(n_in=20, n_out=7)], 10, cost=log_likelihood), 10, 
+                    .17, 'momentum', 0.0, 0.0, 0.0, 50, 2, "LL + Softmax + Sigmoid"] 
                 for r in range(run_count)
            ],
 '''
 configs = [
-            [
+           [
                 [Network([ 
-                    FullyConnectedLayer(n_in=51*51, n_out=300, activation_fn=sigmoid, p_dropout=0.008), 
-                    FullyConnectedLayer(n_in=300, n_out=80, activation_fn=sigmoid, p_dropout=0.008), 
-                    FullyConnectedLayer(n_in=80, n_out=20, activation_fn=sigmoid, p_dropout=0.008), 
-                    FullyConnectedLayer(n_in=20, n_out=7, activation_fn=linear, p_dropout=0.008)], 5, cost=quadratic), 5, 
-                    .29, 'momentum', 0.23, 0.0, 0.619, 50, 2, "Quadratic + Linear"] 
+                    ConvPoolLayer(image_shape=(20, 1, 51, 51),
+                        filter_shape=(64, 1, 4, 4),
+                        poolsize=(2,2),
+                        poolmode='average_exc_pad'),
+                    ConvPoolLayer(image_shape=(20, 64, 24, 24),
+                        filter_shape=(128, 64, 5, 5),
+                        poolsize=(2,2),
+                        poolmode='average_exc_pad'),
+                    FullyConnectedLayer(n_in=10*10*128, n_out=600, activation_fn=sigmoid, p_dropout=0.5), 
+                    FullyConnectedLayer(n_in=600, n_out=30, activation_fn=sigmoid, p_dropout=0.5), 
+                    SoftmaxLayer(n_in=30, n_out=output_dims, p_dropout=0.5)], 20, cost=log_likelihood), 20, 
+                    .07977, 'momentum', 0.0, 0.0, 5.0, forced_scheduler_interval, scheduler_check_interval, param_decrease_rate, "l=5.0, d=0.5"]
                 for r in range(run_count)
            ],
         ]
@@ -158,11 +192,12 @@ if update_output:
             optimization = config[run_index][3]
             optimization_term1 = config[run_index][4]
             optimization_term2 = config[run_index][5]
-            regularization_rate = config[run_index][5]
-            scheduler_check_interval = config[run_index][6]
-            param_decrease_rate = config[run_index][7]
+            regularization_rate = config[run_index][6]
+            forced_scheduler_interval = config[run_index][7]
+            scheduler_check_interval = config[run_index][8]
+            param_decrease_rate = config[run_index][9]
             output_dict = net.SGD(output_dict, training_data, epochs, mini_batch_size, learning_rate, validation_data, test_data, optimization=optimization, optimization_term1=optimization_term1, optimization_term2=optimization_term2, lmbda=regularization_rate, 
-                    scheduler_check_interval=scheduler_check_interval, param_decrease_rate=param_decrease_rate)
+                    forced_scheduler_interval=forced_scheduler_interval, scheduler_check_interval=scheduler_check_interval, param_decrease_rate=param_decrease_rate)
 
             if training_ensemble:
                 ensemble_nets.append(Network(net.layers, config_base.size(test_data)))
