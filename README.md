@@ -1,48 +1,57 @@
 #Description
 
-While much of the code here is just my experimentation with machine learning, like [here](https://github.com/DarkElement75/machine-learning-tinkering), it's also for the project that i've decided to call Dennis, who I plan on using to manage my local music library with voice commands. I will be doing incremental updates inside each Mark, but when I have reached certain goals I had for it or it has been upgraded a significant amount (i.e. when I decide I want to) I will add a new version file and description(Mark 1, Mark 2, Mark 3). Below I will summarize the improvements done in each Mark, and the current work if it is the one currently in progres.
+The code here is D.E.N.N.I.S. - Dark Element's Neural Networking Intelligent System.
+
+What started as simple experimentation with some code I obtained from [Michael Nielsen's awesome book on machine learning](http://neuralnetworksanddeeplearning.com/chap1.html), has since developed into my system for deep learning and data handling in general. MK1 - MK4 were dedicated to my own speech recognition, however I then started on an image recognition research project, with which I used my already existing code for MK4. I made several improvements to Dennis there, and in order to avoid having a bunch of different repositories containing massive tracts of base deep learning code, I have decided this will be the parent, with the children being the applications to various projects. 
+
+I am currently making some major upgrades to Dennis as I also move him over to Tensorflow, in MK5.
 
 Note: If you ever want the data I used, contact me. I don't want to be like all the sources that keep their data private or at a price.
 
-##MK. 1
-The first (barely) functional version, took in raw audio spectrogram from total of 120 wav files containing either "dennis" or "play", and output the word given. With **extremely** basic functionality it obtained 67% accuracy, or a 33% margin of error. 
+##MK. 5 - No longer just for music
 
-These are results that already have been greatly improved upon in Mk. 2, which is good news considering the results were on the training data, not even the validation and test accuracies!
+I am currently remodeling all of Dennis as I move him to Tensorflow, and thanks largely in part to the incredible Tensorflow library, he will be far more flexible, modular, and robust once this is complete. 
 
-Used Fully connected sigmoid layers with 83968 inputs, 100 and 30 neurons in the two hidden layers, and 2 softmax outputs.
+I have also replaced CHO with his successor, [BBHO](https://github.com/DarkElement75/bbho). He will be used for optimizing Dennis for various projects from now on, as Bayesian Optimization of Machine Learning Algorithms is one of the best black box optimization strategies in the research field currently.
 
-##MK. 2
-####Best Config:
+##MK. 4 - Current Best Validation Accuracy = 91% 
 
-With Hyper-Parameters of:
+Due to what I believe is largely a lack of sufficient data and also likely computational power(or an algorithm for generalization >= the brain's), I left MK. 3 and decided on the design for MK. 4.
 
-Mini Batch Size = 10
-Learning Rate = 0.1
-Momentum Coefficient = 0.0 (Wasn't functional at this time)
-Regularization Rate(L2 Regularization) = 0.02
-No Dropout
+Instead of attempting to do a 5000 vocabulary speech recognition of ~5 samples each, I took after MK. 2 & MK. 1, recording 60 samples of four more words, and 120 of random miscellaneous words. Supplemented with the 60 each of the words from MK. 1 and MK. 2, the following is the vocab class - sample:
 
-Input was 38*38 into Fully Connected sigmoid layers with 100 neurons, 30 neurons, and then a Softmax output layer of 2 neurons.
+0. Misc -     120 - UPDATE: Removed this.
+1. Shuffle -  60
+2. Dennis -   60
+3. Next -     60
+4. Play -     60
+5. Pause -    60
+6. Back -     60
 
-Training Cost: ~0.7, Training Accuracy: 100%, Validation Accuracy: ~97%, Test Accuracy: ~94% (Each saturated after ~300 epochs although sample was taken from 600 epochs just in case)
+Totalling 480 raw samples, which I expanded with speed factors of .9 and 1.1 as earlier, and transformed to MFCCs, giving 1440 MFCC samples. 
 
-Used same samples as last time, with 80 training, 20 validation, and 20 test, divided evenly for each word.
+I will post the results soon, however the best Validation & Test Accuracy is ~70%. This type of topology is much faster and easier to train, while also giving me 6 voice commands to control my music with. While I would very much like to have gotten MK. 3 working, I believe that to be infeasible. I am confident that I will be able to get to a < 5% error margin on test accuracy with this layout, especially considering the 70% accuracy was on a two-hidden-layer network with 100 and 30 neurons respectively. Before I move on to the features to add, there is one that I believe warrants it's own subheading:
 
-After changing to using [Mel-frequency cepstral coefficients](https://en.wikipedia.org/wiki/Mel-frequency_cepstrum), AKA MFCCs, it obtained(as of the last experiment) 100% training accuracy(as hoped), 90% validation accuracy, and 72.5% test accuracy (iirc). 
+UPDATE: Have recently obtained Validation Accuracy of 91% on Convolutional-AvgPooling Layer with Kernels of size 4x4, Stride length of 1, and Average Pooling (excluding padding) size of 2x2, followed by Fully Connected Sigmoid layers of size 300 and 30, followed by Softmax output layer for the now 6 outputs. Was trained for 800 epochs with a learning rate exponentially decreasing schedule of .17*e^(-0.005x), mini batch size of 56, l2 regularization rate of 3.0, and dropout percentage of 0.2
 
-I've been working on my own momentum implementation since I feel bad about just cheating and using theano's, so we'll see how that goes and if it improves things. It tests extremely fast using the Mk. 1 sorta-deep NN setup, so that's what a lot of testing new features will be on. I'll also likely add some matplotlib graphs, since I updated that implementation as well.
+Features Added:
 
-dennis2.py is based off of Network3.py by mnielsen, as I modify, improve, tinker, and add features until it's an entirely new Ship of Theseus. 
+1. CHO
+2. Saving and Loading Networks
+3. Changed early stopping to look at Validation Accuracy instead of Training Cost - Note: Can be easily changed just by replacing the parameter it checks for and measures (3 lines) in dennis4.py. I do not know how I could easily make this customizable within the config, and I do not think it is a priority considering it's almost always based on validation accuracy, afaik
+4. Enabled automatic scheduling without early stopping so that runs can be easily compared
+5. Actual implementation of live audio being fed into saved networks(shouldn't be a problem with ensemble, though I haven't obtained good enough results with them to implement it yet). Won't be used until I get within 5% test error margin.
+6. Added rudimentary exponential learning rate decrease, added forced scheduling intervals that decrease every n epochs, changed automatic scheduling back to judging validation accuracy.
+7. CHO - Can judge on one run, however not recommended since repetition + averaging is often much more accurate.
+8. Now using added static to the beginning of every sample before expanding so as to get a better estimate of test data, for all experiements henceforth.
+9. Implemented ensemble networks in main_config.py, no random forest features yet, however. All trained on same subsets.
+10. Removed Misc as it seemed infeasible to work on all the features to make it live, not including accidentally saying it's name and such things, in favor of a Press-key-speak system. It also is likely to interfere with future features, and is not a good way to protect against the problems I added it to prevent. Accuracy on Validation and Test Accuracy increased slightly.
 
-I decided to go to MK. 3 when implementing the entirely new data setup, so several of the things I planned on doing ended up being with that. I ran one last run with MK. 2 for the graph, however here are the final things I did end up completing before moving on:
+Features to Add:
 
-1. Automatic scheduling of learning rates(And many other things that i'd like to automatically schedule to see how they impact things) - I added this for learning rates but i'm not sure if mini batch size is a good thing to schedule. If it ends up working out, i'll schedule that as well. Until then, I did implement this for learning rates. Only with the training cost however, since the accuracy increases in large jumps due to the small amount of data to compute accuracy on.
-2. Expand the MFCC data as well (Already did this a bit with the raw samples, increasing speed to 1.1 and decreasing to 0.9, but actually yielded far worse results in all sections) - Upon doing this with MFCCs I got the best data in all respects. I am hence using this in future experiments unless I have good reason to try a (extremely long) test with raw samples
-3. Did several improvements to graphing outputs such as labels, titles, display on machine that is ssh'ing if being run remotely.
-4. Normalized input according to distribution made from training data, also showed good improvement
-5. Tried expanding with 0.8, 0.9, 1.1, and 1.2, however it yielded worse results than control and 0.9, 1.1 .
-
-Due to some recently discovered bugs in the graphing part of things, I will not be including it since it is misleading. The results listed for MK. 2 are still accurate, however the graph would be misleading for the following reasons:
+1. Continue optimizing HPs for experimental topologies, thanks to CHO I can work on other features while he handles that.
+2. CHO - I will be adding more efficient step ranges to minimize the amount of configs that must be run like a human would do
+3. Possibly experiment with different types of Fast Fourier Transforms outside of MFCCs
 
 ##MK. 3
 ####Current Results:
@@ -88,90 +97,46 @@ Features to add:
 6. Test scheduling now that accuracy is actually changing with reasonable intervals
 7. Improve automatic scheduling to work better with automation
 
-##MK. 4 - Current Best Validation Accuracy = 91% 
+##MK. 2
+####Best Config:
 
-Due to what I believe is largely a lack of sufficient data and also likely computational power(or an algorithm for generalization >= the brain's), I left MK. 3 and decided on the design for MK. 4.
+With Hyper-Parameters of:
 
-Instead of attempting to do a 5000 vocabulary speech recognition of ~5 samples each, I took after MK. 2 & MK. 1, recording 60 samples of four more words, and 120 of random miscellaneous words. Supplemented with the 60 each of the words from MK. 1 and MK. 2, the following is the vocab class - sample:
+Mini Batch Size = 10
+Learning Rate = 0.1
+Momentum Coefficient = 0.0 (Wasn't functional at this time)
+Regularization Rate(L2 Regularization) = 0.02
+No Dropout
 
-0. Misc -     120 - UPDATE: Removed this.
-1. Shuffle -  60
-2. Dennis -   60
-3. Next -     60
-4. Play -     60
-5. Pause -    60
-6. Back -     60
+Input was 38*38 into Fully Connected sigmoid layers with 100 neurons, 30 neurons, and then a Softmax output layer of 2 neurons.
 
-Totalling 480 raw samples, which I expanded with speed factors of .9 and 1.1 as earlier, and transformed to MFCCs, giving 1440 MFCC samples. 
+Training Cost: ~0.7, Training Accuracy: 100%, Validation Accuracy: ~97%, Test Accuracy: ~94% (Each saturated after ~300 epochs although sample was taken from 600 epochs just in case)
 
-I will post the results soon, however the best Validation & Test Accuracy is ~70%. This type of topology is much faster and easier to train, while also giving me 6 voice commands to control my music with. While I would very much like to have gotten MK. 3 working, I believe that to be infeasible. I am confident that I will be able to get to a < 5% error margin on test accuracy with this layout, especially considering the 70% accuracy was on a two-hidden-layer network with 100 and 30 neurons respectively. Before I move on to the features to add, there is one that I believe warrants it's own subheading:
+Used same samples as last time, with 80 training, 20 validation, and 20 test, divided evenly for each word.
 
-UPDATE: Have recently obtained Validation Accuracy of 91% on Convolutional-AvgPooling Layer with Kernels of size 4x4, Stride length of 1, and Average Pooling (excluding padding) size of 2x2, followed by Fully Connected Sigmoid layers of size 300 and 30, followed by Softmax output layer for the now 6 outputs. Was trained for 800 epochs with a learning rate exponentially decreasing schedule of .17*e^(-0.005x), mini batch size of 56, l2 regularization rate of 3.0, and dropout percentage of 0.2
+After changing to using [Mel-frequency cepstral coefficients](https://en.wikipedia.org/wiki/Mel-frequency_cepstrum), AKA MFCCs, it obtained(as of the last experiment) 100% training accuracy(as hoped), 90% validation accuracy, and 72.5% test accuracy (iirc). 
 
-###CHO - Cool Hyper-Parameter Optimizer
+I've been working on my own momentum implementation since I feel bad about just cheating and using theano's, so we'll see how that goes and if it improves things. It tests extremely fast using the Mk. 1 sorta-deep NN setup, so that's what a lot of testing new features will be on. I'll also likely add some matplotlib graphs, since I updated that implementation as well.
 
-This is the idea I mentioned earlier in the features to add section of MK. 3, come to fruition. In summary,
+dennis2.py is based off of Network3.py by mnielsen, as I modify, improve, tinker, and add features until it's an entirely new Ship of Theseus. 
 
-1. Generate vectors of Hyper Parameter(HP) values
-2. Get cartesian product
-3. Get average point output for each HP in the Cartesian Product via if three learning rates 0.3, 0.4, 0.5 and three mini batch sizes 10, 20, 30, we'd get the three values for (10, 0.3), (10, 0.4), (10, 0.5) and average these outputs since the effect of m=10 should be equivalent across the different learning rates. This gives us one value for our m=10(and the rest of the mini batch sizes) to use in the following steps. Note: I realize m is a relatively independent HP and can be determined as such.
-4. Use these new points for each HP to generate a quadratic linear regression of the form A + Bx + Cx^2 for each HP
-5. Add all of our quadratic linear regressions together to get a multivariable equation such as 5 + 4m + 7.2m^2 + .32n + 6.32n^2
-6. Compute the minimum to 1e-8 of our multivariable function using scipy.optimize.minimize with respective bounds
-7. Use our new minimum HP values to generate new ranges after decreasing step size, if step size is under our threshold then stop for this HP
-8. Go to Number 1 until all HPs are done
+I decided to go to MK. 3 when implementing the entirely new data setup, so several of the things I planned on doing ended up being with that. I ran one last run with MK. 2 for the graph, however here are the final things I did end up completing before moving on:
 
-This has shown to be way faster and better than me, in fact what I thought was a bug at once was actually the most efficient mini batch size I could have obtained, and it just knew better than me. While it is still in constant development and improvement, it determined the ideal(at least I hope they were ideal) HPs for the shallow network topology I mentioned earlier. Upon comparing with my own hypothesis for the best values, it gained a 20% improvement in validation accuracy, the metric upon which I chose it to search them with(although this can be REALLY easily changed, I chose test accuracy because I see that as most relevant. I have considered a combination of accuracies for it to look at). 
+1. Automatic scheduling of learning rates(And many other things that i'd like to automatically schedule to see how they impact things) - I added this for learning rates but i'm not sure if mini batch size is a good thing to schedule. If it ends up working out, i'll schedule that as well. Until then, I did implement this for learning rates. Only with the training cost however, since the accuracy increases in large jumps due to the small amount of data to compute accuracy on.
+2. Expand the MFCC data as well (Already did this a bit with the raw samples, increasing speed to 1.1 and decreasing to 0.9, but actually yielded far worse results in all sections) - Upon doing this with MFCCs I got the best data in all respects. I am hence using this in future experiments unless I have good reason to try a (extremely long) test with raw samples
+3. Did several improvements to graphing outputs such as labels, titles, display on machine that is ssh'ing if being run remotely.
+4. Normalized input according to distribution made from training data, also showed good improvement
+5. Tried expanding with 0.8, 0.9, 1.1, and 1.2, however it yielded worse results than control and 0.9, 1.1 .
 
-###Now back to MK. 4:
-
-Features Added:
-
-1. CHO
-2. Saving and Loading Networks
-3. Changed early stopping to look at Validation Accuracy instead of Training Cost - Note: Can be easily changed just by replacing the parameter it checks for and measures (3 lines) in dennis4.py. I do not know how I could easily make this customizable within the config, and I do not think it is a priority considering it's almost always based on validation accuracy, afaik
-4. Enabled automatic scheduling without early stopping so that runs can be easily compared
-5. Actual implementation of live audio being fed into saved networks(shouldn't be a problem with ensemble, though I haven't obtained good enough results with them to implement it yet). Won't be used until I get within 5% test error margin.
-6. Added rudimentary exponential learning rate decrease, added forced scheduling intervals that decrease every n epochs, changed automatic scheduling back to judging validation accuracy.
-7. CHO - Can judge on one run, however not recommended since repetition + averaging is often much more accurate.
-8. Now using added static to the beginning of every sample before expanding so as to get a better estimate of test data, for all experiements henceforth.
-9. Implemented ensemble networks in main_config.py, no random forest features yet, however. All trained on same subsets.
-10. Removed Misc as it seemed infeasible to work on all the features to make it live, not including accidentally saying it's name and such things, in favor of a Press-key-speak system. It also is likely to interfere with future features, and is not a good way to protect against the problems I added it to prevent. Accuracy on Validation and Test Accuracy increased slightly.
+Due to some recently discovered bugs in the graphing part of things, I will not be including it since it is misleading. The results listed for MK. 2 are still accurate, however the graph would be misleading for the following reasons:
 
 
-Features to Add:
+##MK. 1
+The first (barely) functional version, took in raw audio spectrogram from total of 120 wav files containing either "dennis" or "play", and output the word given. With **extremely** basic functionality it obtained 67% accuracy, or a 33% margin of error. 
 
-1. Continue optimizing HPs for experimental topologies, thanks to CHO I can work on other features while he handles that.
-2. CHO - I will be adding more efficient step ranges to minimize the amount of configs that must be run like a human would do
-3. Possibly experiment with different types of Fast Fourier Transforms outside of MFCCs
+These are results that already have been greatly improved upon in Mk. 2, which is good news considering the results were on the training data, not even the validation and test accuracies!
 
-And finally, I am starting college in a few days, and have also started working with some graduate students there. With this in mind (as well as classes and such), I will almost definitely either table/stop this project for now, or just spend very little time on it, as the opportunities and work there are far more important than this. They're also machine-learning related, which makes it even better! 
+Used Fully connected sigmoid layers with 83968 inputs, 100 and 30 neurons in the two hidden layers, and 2 softmax outputs.
 
-But basically, if you see this repo and think "Oh it's ded rip", just contact me with my email up at the top for any questions or (yet again) if you need the data I used. Chances are, i'm just busy with other things / moving on. See ya!
 
--Dark Element / Blake Edwards
-
-##Credit to Michael Nielsen for his [awesome book on machine learning](http://neuralnetworksanddeeplearning.com/chap1.html), and also for his [extremely helpful and well-written neural network and machine learning code](https://github.com/mnielsen/neural-networks-and-deep-learning/). I can't thank him enough for getting me started and for the resources he has provided to everyone.
-
-##License
-MIT License
-
-Copyright (c) 2016 Blake Edwards / Dark Element
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+##I'd like to thank Michael Nielsen for his [awesome book on machine learning](http://neuralnetworksanddeeplearning.com/chap1.html), and also for his [extremely helpful and well-written neural network and machine learning code](https://github.com/mnielsen/neural-networks-and-deep-learning/). I can't thank him enough for getting me started and for the resources he has provided to everyone.
