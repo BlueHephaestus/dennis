@@ -9,6 +9,12 @@ import tensorflow as tf
 import layers
 from layers import *
 
+import costs
+from costs import *
+
+import optimizers
+from optimizers import init_optimizer
+
 import weight_inits
 from weight_inits import *
 
@@ -18,66 +24,89 @@ from bias_inits import *
 #import costs
 #from costs import *
 
-class Network(self, layers, cost=log_likelihood, weight_init=glorot_bengio_init, bias_init=standard)
-self.sess = tf.InteractiveSession()
+class Network(object):
 
-#Initialize symbolic variables,
-#x as a float input of shape 784,
-#And y as a float output of shape 10
-x = tf.placeholder(tf.float32, shape=[None, 784])
-y = tf.placeholder(tf.float32, shape=[None, 10])#Our desired output
+    def __init__(self, layers, input_dims, output_dims, cost=cross_entropy, weight_init=glorot_bengio, bias_init=standard):
 
-#Dropout percentage
-keep_prob = tf.placeholder(tf.float32)
+        self.layers = layers
+        self.cost = cost
+        self.weight_init = weight_init
+        self.bias_init = bias_init
 
-#Initialize layers
-layers = [
-        ConvPoolLayer(
-            [5, 5, 1, 32], 
-            [-1, 28, 28, 1], 
-            conv_padding='VALID', 
-            pool_padding='VALID', 
-            activation_fn=tf.nn.relu
-        ), 
-        ConvPoolLayer(
-            [5, 5, 32, 64], 
-            [-1, 12, 12, 32], 
-            conv_padding='VALID', 
-            pool_padding='VALID', 
-            activation_fn=tf.nn.relu
-        ),
-        FullyConnectedLayer(4*4*64, 10, keep_prob, activation_fn=tf.nn.sigmoid),
-        SoftmaxLayer(10, 10)
-        ]
+        #Initialize interactive session
+        self.sess = tf.InteractiveSession()
 
-#Propogate our input forwards throughout the network layers
-init_layer = layers[0]
-init_layer.evaluate(x)
-for i in xrange(1, len(layers)):
-    prev_layer, layer = layers[i-1], layers[i]
-    layer.evaluate(prev_layer.output)
-output = layers[-1].output
+        #Initialize symbolic variables,
+        #x as a float input of shape input_dims,
+        #And y as a float output of shape output_dims
+        self.x = tf.placeholder(tf.float32, shape=[None, input_dims])
+        self.y = tf.placeholder(tf.float32, shape=[None, output_dims])#Our desired output, not actual
 
+        #Dropout percentage
+        self.keep_prob = tf.placeholder(tf.float32)
 
-cross_entropy = tf.reduce_mean(-tf.reduce_sum(y * tf.log(output), reduction_indices=[1]))
+        #Propogate our input forwards throughout the network layers
+        init_layer = layers[0]
+        init_layer.evaluate(self.x, self.keep_prob, weight_init, bias_init)
+        for i in xrange(1, len(layers)):
+            prev_layer, layer = layers[i-1], layers[i]
+            layer.evaluate(prev_layer.output, self.keep_prob, weight_init, bias_init)
+        self.output = layers[-1].output
 
-#train_step = tf.train.AdamOptimizer(1e-4).minimize(cross_entropy)
-train_step = tf.train.GradientDescentOptimizer(0.5).minimize(cross_entropy)
+    """
+    Optimize our cost function.
 
-correct_prediction = tf.equal(tf.argmax(output,1), tf.argmax(y,1))
+    epochs is the number of epochs, or training steps
+    mb_n is the mini batch size
+    optimization_type is the type of optimization to use,
+        'sgd' = normal stochastic gradient descent
+        'momentum' = stochastic gradient descent + momentum
+        'adam' = adam optimizer
+    optimization_term is the term to be passed to our optimization, e.g.
+        would be learning rate for 'sgd',
+        or momentum coefficient for 'momentum'
+    optimization_term_decay_rate is the rate we exponentially decay our optimization term
+    regularization_rate is our regularization rate
+    keep_prob is the probability we keep a neuron, the (1 - dropout percentage.)
+    """
 
-accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
+    def optimize(self, epochs, mb_n, optimization_type='gd', initial_optimization_term1=0.0, optimization_term1_decay_rate=0.0, optimization_term2=0.0, optimization_term3=0.0, optimization_defaults=True, regularization_rate=0.0, keep_prob=1.0):
+        
+        #Initialize current step number to 0, so we can increment it and use it for our exponential decay
+        current_step = tf.Variable(0, trainable=False)
 
-#Initialize all the variables into our computational graph
-self.sess.run(tf.initialize_all_variables())
+        #Set up our exponential decay of our optimization term
+        #staircase=True because the floating point calculation is unnecessary
+        optimization_term1 = tf.train.exponential_decay(initial_optimization_term1, current_step, epochs, optimization_term1_decay_rate, staircase=True)
+        
+        #Set the value of our cost function passed
+        self.cost = self.cost(self.output, self.y)
 
-for i in range(1000):
-    batch = mnist.train.next_batch(50)
-    #if i%100 == 0:
-    train_accuracy = accuracy.eval(feed_dict={ x:batch[0], y: batch[1], keep_prob: 1.0})
-    print("step %d, training accuracy %g"%(i, train_accuracy))
+        #train_step = tf.train.AdamOptimizer(1e-4).minimize(cross_entropy)
+        #train_step = tf.train.GradientDescentOptimizer(learning_rate).minimize(self.cost, global_step=current_step)
+        #Initialize our optimizer
+        optimizer = init_optimizer(optimization_type, optimization_term1, optimization_term2, optimization_term3, defaults=optimization_defaults)
 
-    train_step.run(feed_dict={x: batch[0], y: batch[1], keep_prob: 1.0})
+        #Initialize our training function. We pass in global step so as to increment our current step each time this is called.
+        train_step = optimizer.minimize(self.cost, global_step=current_step)
 
-    print("test accuracy %g" % accuracy.eval(feed_dict={ x: mnist.test.images, y: mnist.test.labels, keep_prob: 1.0}))
+        #Initialize our accuracy function
+        #Note: We keep our keep_prob at 1 when computing accuracy, since we want the entire network.
+        correct_prediction = tf.equal(tf.argmax(self.output,1), tf.argmax(self.y,1))
+        accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
+
+        #Initialize all the variables into our computational graph
+        self.sess.run(tf.initialize_all_variables())
+
+        for step in range(epochs):
+            batch = mnist.train.next_batch(mb_n)
+
+            #Get our training accuracy.
+            train_accuracy = accuracy.eval(feed_dict={ self.x:batch[0], self.y: batch[1], self.keep_prob: 1.0})
+            print("step %d, training accuracy %g"%(step, train_accuracy))
+
+            #Run training step, with our actual keep prob
+            train_step.run(feed_dict={self.x: batch[0], self.y: batch[1], self.keep_prob: keep_prob})
+
+            print("test accuracy %g" % accuracy.eval(feed_dict={ self.x: mnist.test.images, self.y: mnist.test.labels, self.keep_prob: 1.0}))
 
