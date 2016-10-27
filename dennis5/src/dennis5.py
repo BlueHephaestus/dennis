@@ -69,7 +69,7 @@ class Network(object):
     regularization_rate is our regularization rate
     keep_prob is the probability we keep a neuron, the (1 - dropout percentage.)
     """
-    def optimize(self, output_config, epochs, mb_n, optimization_type='gd', initial_optimization_term1=0.0, optimization_term1_decay_rate=0.0, optimization_term2=0.0, optimization_term3=0.0, optimization_defaults=True, regularization_rate=0.0, keep_prob=1.0):
+    def optimize(self, output_config, epochs, mb_n, optimization_type='gd', initial_optimization_term1=0.0, optimization_term1_decay_rate=1.0, optimization_term2=0.0, optimization_term3=0.0, optimization_defaults=True, regularization_rate=0.0, keep_prob=1.0):
 
         #Initialize our final output dict for this run
         output_dict = {}
@@ -78,8 +78,8 @@ class Network(object):
         current_step = tf.Variable(0, trainable=False)
 
         #Set up our exponential decay of our optimization term
-        #staircase=True because the floating point calculation is unnecessary
-        optimization_term1 = tf.train.exponential_decay(initial_optimization_term1, current_step, epochs, optimization_term1_decay_rate, staircase=True)
+        #staircase=False because it doesn't decay correctly if True
+        optimization_term1 = tf.train.exponential_decay(initial_optimization_term1, current_step, epochs, optimization_term1_decay_rate, staircase=False)
         
         #Set the value of our cost function passed
         self.cost = self.cost_type.evaluate(self.output, self.y)
@@ -105,7 +105,8 @@ class Network(object):
         for step in range(epochs):
             #For progress
             if step % 100 == 0:
-                print "\tSTEP %i" % step
+                sys.stdout.write("\r\tSTEP %i" % step)
+                sys.stdout.flush()
 
             batch = mnist.train.next_batch(mb_n)
 
@@ -134,6 +135,7 @@ class Network(object):
             if output_config['output_test_accuracy']:
                 output_dict[step].append(float(test_accuracy))
 
+        print ""
         if output_config['output_cost']:
             print "\tCost: %f" % (step_cost)
         if output_config['output_training_accuracy']:
