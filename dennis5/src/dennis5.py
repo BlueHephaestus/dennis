@@ -69,7 +69,6 @@ class Network(object):
     regularization_rate is our regularization rate
     keep_prob is the probability we keep a neuron, the (1 - dropout percentage.)
     """
-
     def optimize(self, output_config, epochs, mb_n, optimization_type='gd', initial_optimization_term1=0.0, optimization_term1_decay_rate=0.0, optimization_term2=0.0, optimization_term3=0.0, optimization_defaults=True, regularization_rate=0.0, keep_prob=1.0):
 
         #Initialize our final output dict for this run
@@ -85,10 +84,12 @@ class Network(object):
         #Set the value of our cost function passed
         self.cost = self.cost_type.evaluate(self.output, self.y)
 
-        #train_step = tf.train.AdamOptimizer(1e-4).minimize(cross_entropy)
-        #train_step = tf.train.GradientDescentOptimizer(learning_rate).minimize(self.cost, global_step=current_step)
-        #Initialize our optimizer
-        optimizer = init_optimizer(optimization_type, optimization_term1, optimization_term2, optimization_term3, defaults=optimization_defaults)
+        #Initialize our optimizer if it's a string keyword argument,
+        #   otherwise we were given the tensorflow object
+        if type(optimization_type) == str:
+            optimizer = init_optimizer(optimization_type, optimization_term1, optimization_term2, optimization_term3, defaults=optimization_defaults)
+        else:
+            optimizer = optimization_type
 
         #Initialize our training function. We pass in global step so as to increment our current step each time this is called.
         train_step = optimizer.minimize(self.cost, global_step=current_step)
@@ -116,7 +117,7 @@ class Network(object):
 
             #Get our various data accuracies
             training_accuracy = accuracy.eval(feed_dict={ self.x:batch[0], self.y: batch[1], self.keep_prob: 1.0}) * 100
-            validation_accuracy = 0 * 100
+            validation_accuracy = accuracy.eval(feed_dict={ self.x: mnist.validation.images, self.y: mnist.validation.labels, self.keep_prob: 1.0}) * 100
             test_accuracy = accuracy.eval(feed_dict={ self.x: mnist.test.images, self.y: mnist.test.labels, self.keep_prob: 1.0}) * 100
 
             #Initialize empty list for our outputs at this step
