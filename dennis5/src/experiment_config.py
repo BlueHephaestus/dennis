@@ -31,8 +31,8 @@ from bias_inits import *
 
 input_dims = 784
 output_dims = 10
-run_count = 10
-epochs = 10#Have to have this here since it needs to be the same across configs
+run_count = 3
+epochs = 100#Have to have this here since it needs to be the same across configs
 
 output_config = {
     'output_title': "NN Test 1",
@@ -46,7 +46,31 @@ output_config = {
     'output_test_accuracy' : True,
 
 }
+"""
+CONFIG DOCUMENTATION
+1. First argument must be list of layers for the network
+2. Second argument must be a dictionary of hyper parameters for the network
+    input_dims: the input dimensions
+    output_dims: the output dimensions
+    cost: the cost function
+    mb_n: mini batch size
+    optimization_type: 
+        The type of optimization to use.
+        If you want to have as many arguments default as possible, then you can just use optimization_defaults = True for that.
+        If you want none of them, then set optimization_defaults = False.
+        However, if you want some on and some off, you can pass in the tensorflow optimization object instead of a string here.
+    optimization_term1: First optimization term
+    optimization_term1_decay_rate: First optimization term's decay rate, usually only used for when this is learning rate.
+    optimization_term2: Second optimization term
+    optimization_term3: Third optimization term
+    optimization_defaults: described under usage with optimization_type.
+    regularization_rate: Not implemented yet.
+    keep_prob: the probability we keep any given neuron, (1-keep_prob) = dropout percentage.
+    label: what the line will be labeled on our final graph.
 
+
+
+"""
 """ configs = [
             [
                 [Network([ 
@@ -87,7 +111,26 @@ configs = [
                     'optimization_defaults': True,
                     'regularization_rate': 0.0,
                     'keep_prob': 1.0,
-                    'label': "Initial Test 1"
+                    'label': "GD"
+                }
+            ],
+            [
+                [FullyConnectedLayer(784, 10, activation_fn=tf.nn.sigmoid), 
+                SoftmaxLayer(10, 10)], 
+                {    
+                    'input_dims': input_dims,
+                    'output_dims': output_dims,
+                    'cost': cross_entropy, 
+                    'mb_n': 50,
+                    'optimization_type': tf.train.AdamOptimizer(1e-4),
+                    'optimization_term1': 1e-4,
+                    'optimization_term1_decay_rate': 0.0,
+                    'optimization_term2': 0.0,
+                    'optimization_term3': 0.0,
+                    'optimization_defaults': False,
+                    'regularization_rate': 0.0,
+                    'keep_prob': 1.0,
+                    'label': "Adam"
                 }
             ],
           ]
