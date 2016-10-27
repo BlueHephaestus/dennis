@@ -14,6 +14,9 @@ from dennis5 import *
 import dennis_base
 from dennis_base import *
 
+import output_grapher
+from output_grapher import *
+
 import layers
 from layers import *
 
@@ -28,16 +31,20 @@ from bias_inits import *
 
 input_dims = 784
 output_dims = 10
-run_count = 3
+run_count = 10
+epochs = 10#Have to have this here since it needs to be the same across configs
 
 output_config = {
     'output_title': "NN Test 1",
     'graph_output': True,
     'update_output': True,
     'output_cost' : True,
+    'subplot_seperate_configs': False,
+    'print_times': False,
     'output_training_accuracy' : True,
     'output_validation_accuracy' : True,
     'output_test_accuracy' : True,
+
 }
 
 """ configs = [
@@ -71,7 +78,6 @@ configs = [
                     'input_dims': input_dims,
                     'output_dims': output_dims,
                     'cost': cross_entropy, 
-                    'epochs': 10,
                     'mb_n': 50,
                     'optimization_type': 'gd',
                     'optimization_term1': 0.5,
@@ -80,7 +86,8 @@ configs = [
                     'optimization_term3': 0.0,
                     'optimization_defaults': True,
                     'regularization_rate': 0.0,
-                    'keep_prob': 1.0
+                    'keep_prob': 1.0,
+                    'label': "Initial Test 1"
                 }
             ],
           ]
@@ -88,6 +95,13 @@ configs = [
 cost = cross_entropy
 weight_init = glorot_bengio
 bias_init = standard
+
+
+#Clean up our title to get a filename, convert characters to lowercase and spaces to underscores
+output_filename = output_config['output_title'].lower().replace(" ", "_")
+
+#If we're updating output, clear out the old file if it exists.
+if output_config['update_output']: open('{0}_output.txt'.format(output_filename), 'w').close()
 
 #Loop through entire configurations
 for config_i, config in enumerate(configs):
@@ -118,17 +132,18 @@ for config_i, config in enumerate(configs):
             net = Network(config[0], hps['input_dims'], hps['output_dims'], cost, weight_init, bias_init)
 
             #Finally, optimize and store the outputs
-            output_dict[run_i] = net.optimize(output_config, hps['epochs'], hps['mb_n'], hps['optimization_type'], hps['optimization_term1'], hps['optimization_term1_decay_rate'], hps['optimization_term2'], hps['optimization_term3'], hps['optimization_defaults'], hps['regularization_rate'], hps['keep_prob'])
+            output_dict[run_i] = net.optimize(output_config, epochs, hps['mb_n'], hps['optimization_type'], hps['optimization_term1'], hps['optimization_term1_decay_rate'], hps['optimization_term2'], hps['optimization_term3'], hps['optimization_defaults'], hps['regularization_rate'], hps['keep_prob'])
 
         #Get our average extra run if there were >1 runs
         if run_count > 1:#
-            output_dict = get_avg_run(output_dict, hps['epochs'], run_count, get_output_types_n(output_config))
-
-        #Clean up our title to get a filename, convert characters to lowercase and spaces to underscores
-        output_filename = output_config['output_title'].lower().replace(" ", "_")
+            output_dict = get_avg_run(output_dict, epochs, run_count, get_output_types_n(output_config))
 
         #Save our output to the filename
         save_output(output_filename, output_dict)
 
+    #For prettiness, print completion
+    if config_i == len(configs)-1: print "--------100%% PERCENT COMPLETE--------" 
+
 if output_config['graph_output']:
-    pass
+    output_grapher = OutputGrapher(output_config, output_filename, configs, epochs, run_count)
+    output_grapher.graph()
