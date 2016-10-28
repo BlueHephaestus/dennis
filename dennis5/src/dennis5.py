@@ -1,8 +1,3 @@
-
-#import mnist dataset, and assign mnist object
-from tensorflow.examples.tutorials.mnist import input_data
-mnist = input_data.read_data_sets('MNIST_data', one_hot=True)
-
 #import tensorflow, and start an interactive session so we can use our computational graph
 import tensorflow as tf
 
@@ -26,9 +21,10 @@ from bias_inits import *
 
 class Network(object):
 
-    def __init__(self, layers, input_dims, output_dims, cost_type=cross_entropy, weight_init=glorot_bengio, bias_init=standard):
+    def __init__(self, layers, input_dims, output_dims, dataset, cost_type=cross_entropy, weight_init=glorot_bengio, bias_init=standard):
 
         self.layers = layers
+        self.dataset = dataset
         self.cost_type = cost_type
         self.weight_init = weight_init
         self.bias_init = bias_init
@@ -108,18 +104,33 @@ class Network(object):
                 sys.stdout.write("\r\tSTEP %i" % step)
                 sys.stdout.flush()
 
-            batch = mnist.train.next_batch(mb_n)
+            #Get our next mb_n number of samples
+            """
+            I wasn't sure why TensorFlow did mini batch training different in their MNIST examples, 
+                but then I learned that using all the data every training step is much more expensive,
+                and just getting a new batch each time is "[cheaper] and has much of the same benefit". 
+
+            So that's pretty awesome, and I wish I had known that for Dennis MK4 and before. 
+                So from now on, we only have to shuffle and grab a new batch each time, so much easier.
+
+            Here's the documentation I'm citing, from beginner MNIST tutorial:
+                Each step of the loop, we get a "batch" from our training set. We run train_step feeding in the batches data to replace the placeholders.
+
+                Using small batches of random data is called stochastic training -- in this case, stochastic gradient descent. Ideally, we'd like to use all our data for every step of training because that would give us a better sense of what we should be doing, but that's expensive. So, instead, we use a different subset every time. Doing this is cheap and has much of the same benefit.
+            """
+            batch = self.dataset.next_batch(mb_n)
 
             #Run training step with placeholder values
             train_step.run(feed_dict={self.x: batch[0], self.y: batch[1], self.keep_prob: keep_prob})
 
             #Get our cost
-            step_cost = self.cost.eval(feed_dict={ self.x:batch[0], self.y: batch[1], self.keep_prob: 1.0})
+            step_cost = self.cost.eval(feed_dict={ self.x: batch[0], self.y: batch[1], self.keep_prob: 1.0})
 
             #Get our various data accuracies
-            training_accuracy = accuracy.eval(feed_dict={ self.x:batch[0], self.y: batch[1], self.keep_prob: 1.0}) * 100
-            validation_accuracy = accuracy.eval(feed_dict={ self.x: mnist.validation.images, self.y: mnist.validation.labels, self.keep_prob: 1.0}) * 100
-            test_accuracy = accuracy.eval(feed_dict={ self.x: mnist.test.images, self.y: mnist.test.labels, self.keep_prob: 1.0}) * 100
+            "Change this to evaluate on the entire training dataset if you see it fit"
+            training_accuracy = accuracy.eval(feed_dict={ self.x: batch[0], self.y: batch[1], self.keep_prob: 1.0}) * 100
+            validation_accuracy = accuracy.eval(feed_dict={ self.x: self.dataset.validation.x, self.y: self.dataset.validation.y, self.keep_prob: 1.0}) * 100
+            test_accuracy = accuracy.eval(feed_dict={ self.x: self.dataset.test.x, self.y: self.dataset.test.y, self.keep_prob: 1.0}) * 100
 
             #Initialize empty list for our outputs at this step
             output_dict[step] = []
