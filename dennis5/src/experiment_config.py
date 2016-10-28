@@ -4,7 +4,7 @@ For configuring Dennis to run any sort of comparison or experimental configurati
 
 -Blake Edwards / Dark Element
 """
-import sys, json
+import sys, json, time
 import numpy as np
 import tensorflow as tf
 
@@ -13,6 +13,9 @@ from dennis5 import *
 
 import dennis_base
 from dennis_base import *
+
+import dataset_obj
+from dataset_obj import *
 
 import output_grapher
 from output_grapher import *
@@ -29,10 +32,19 @@ from weight_inits import *
 import bias_inits
 from bias_inits import *
 
-input_dims = 784
-output_dims = 10
+#Network dimensions
+input_dims = 80*145
+output_dims = 5
+
+#Global config settings
 run_count = 3
-epochs = 100#Have to have this here since it needs to be the same across configs
+epochs = 1000#Have to have this here since it needs to be the same across configs
+
+#Data subsets and dataset
+archive_dir = "/home/darkelement/programming/machine_learning/tuberculosis_project/lira/lira1/data/samples_subs2.pkl.gz"
+p_training =    0.8
+p_validation =  0.1
+p_test =        0.1
 
 output_config = {
     'output_title': "NN Test 1",
@@ -41,6 +53,7 @@ output_config = {
     'output_cost' : True,
     'subplot_seperate_configs': False,
     'print_times': False,
+    'save_net': True,
     'output_training_accuracy' : True,
     'output_validation_accuracy' : True,
     'output_test_accuracy' : True,
@@ -96,8 +109,8 @@ CONFIG DOCUMENTATION
 """
 configs = [
             [
-                [FullyConnectedLayer(784, 10, activation_fn=tf.nn.sigmoid), 
-                SoftmaxLayer(10, 10)], 
+                [FullyConnectedLayer(input_dims, 10, activation_fn=tf.nn.sigmoid), 
+                SoftmaxLayer(10, output_dims)], 
                 {    
                     'input_dims': input_dims,
                     'output_dims': output_dims,
@@ -105,32 +118,13 @@ configs = [
                     'mb_n': 50,
                     'optimization_type': 'gd',
                     'optimization_term1': 0.5,
-                    'optimization_term1_decay_rate': 0.9,
+                    'optimization_term1_decay_rate': 1.0,
                     'optimization_term2': 0.0,
                     'optimization_term3': 0.0,
                     'optimization_defaults': True,
                     'regularization_rate': 0.0,
                     'keep_prob': 1.0,
-                    'label': "GD"
-                }
-            ],
-            [
-                [FullyConnectedLayer(784, 10, activation_fn=tf.nn.sigmoid), 
-                SoftmaxLayer(10, 10)], 
-                {    
-                    'input_dims': input_dims,
-                    'output_dims': output_dims,
-                    'cost': cross_entropy, 
-                    'mb_n': 50,
-                    'optimization_type': tf.train.AdamOptimizer(1e-4),
-                    'optimization_term1': 1e-4,
-                    'optimization_term1_decay_rate': 0.0,
-                    'optimization_term2': 0.0,
-                    'optimization_term3': 0.0,
-                    'optimization_defaults': False,
-                    'regularization_rate': 0.0,
-                    'keep_prob': 1.0,
-                    'label': "Adam"
+                    'label': "m=1000"
                 }
             ],
           ]
@@ -139,12 +133,14 @@ cost = cross_entropy
 weight_init = glorot_bengio
 bias_init = standard
 
-
 #Clean up our title to get a filename, convert characters to lowercase and spaces to underscores
 output_filename = output_config['output_title'].lower().replace(" ", "_")
 
 #If we're updating output, clear out the old file if it exists.
 if output_config['update_output']: open('{0}_output.txt'.format(output_filename), 'w').close()
+
+#Initialize an empty list to store our time-to-execute for each config
+config_times = []
 
 #Loop through entire configurations
 for config_i, config in enumerate(configs):
@@ -152,10 +148,17 @@ for config_i, config in enumerate(configs):
     #   of running this configuration over our runs
     output_dict = {}
 
+    #Start a new timer for us to record duration of running config
+    config_start = time.time()
+
     #Loop through number of times to test(runs)
     if output_config['update_output']:
         for run_i in range(run_count):
 
+            #Do this every run so as to avoid any accidental bias that might arise
+            #Load our datasets
+            dataset = load_dataset_obj(p_training, p_validation, p_test, archive_dir, output_dims)
+            
             #Print approximate percentage completion
             perc_complete = perc_completion(config_i, run_i, len(configs), run_count)
             print "--------%02f%% PERCENT COMPLETE--------" % perc_complete
@@ -172,10 +175,14 @@ for config_i, config in enumerate(configs):
                 bias_init = hps['bias_init']
 
             #Initialize Network
-            net = Network(config[0], hps['input_dims'], hps['output_dims'], cost, weight_init, bias_init)
+            net = Network(config[0], hps['input_dims'], hps['output_dims'], dataset, cost, weight_init, bias_init)
 
             #Finally, optimize and store the outputs
             output_dict[run_i] = net.optimize(output_config, epochs, hps['mb_n'], hps['optimization_type'], hps['optimization_term1'], hps['optimization_term1_decay_rate'], hps['optimization_term2'], hps['optimization_term3'], hps['optimization_defaults'], hps['regularization_rate'], hps['keep_prob'])
+
+        #Record times once all runs have executed
+        config_time = time.time() - config_start
+        config_times.append(config_time)
 
         #Get our average extra run if there were >1 runs
         if run_count > 1:#
@@ -186,6 +193,18 @@ for config_i, config in enumerate(configs):
 
     #For prettiness, print completion
     if config_i == len(configs)-1: print "--------100%% PERCENT COMPLETE--------" 
+
+"""
+if output_config['save_net']
+    #Save layers
+    if save_net:
+        save_net(net, output_filename, normalize_data, input_dims)
+"""
+
+#Print time duration for each config
+for config_i, config_time in enumerate(config_times):
+    print "Config %i averaged %f seconds" % (config_i, config_time / float(run_count))
+
 
 if output_config['graph_output']:
     output_grapher = OutputGrapher(output_config, output_filename, configs, epochs, run_count)
