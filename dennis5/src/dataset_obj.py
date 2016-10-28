@@ -19,6 +19,22 @@ def get_one_hot_m(v, width):
     return m
 
 
+"""
+NECESSARY FORMATS
+Each subset must be the following format:
+    [x, y]
+        x shape: (number of samples, length of input vector)
+            where the values are samples, and inputs for each
+        y shape: (number of samples, one hot output vector)
+            where the values are samples, and a one hot vector of outputs for each
+
+So in the case of MNIST, we'd have 
+x: (20, 784)
+y: (20, 10) 
+
+if there were only 20 images.
+"""
+
 #Called by outside of this, uses the classes defined in this file to return dataset object
 def load_dataset_obj(p_training, p_validation, p_test, archive_dir, output_dims):
     #Obtain datasets

@@ -1,6 +1,12 @@
-
 """
 For configuring Dennis to run any sort of comparison or experimental configuration.
+
+Currently running on my LIRA image recognition dataset, 
+    with the problem-specific manipulation of data in 
+    dataset_obj.py 
+
+Feel free to change that accordingly as your data format changes, 
+    the necessary dimensions and format are specified there.
 
 -Blake Edwards / Dark Element
 """
