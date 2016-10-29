@@ -44,7 +44,7 @@ output_dims = 5
 
 #Global config settings
 run_count = 3
-epochs = 1000#Have to have this here since it needs to be the same across configs
+epochs = 800#Have to have this here since it needs to be the same across configs
 
 #Data subsets and dataset
 archive_dir = "/home/darkelement/programming/machine_learning/tuberculosis_project/lira/lira1/data/samples_subs2.pkl.gz"
@@ -113,31 +113,48 @@ CONFIG DOCUMENTATION
             ],
         ]
 """
+"""
+                    [ConvPoolLayer(image_shape=(11, 1, 80, 145),
+                        filter_shape=(20, 1, 7, 12),
+                        poolsize=(2,2),
+                        poolmode='max', activation_fn=sigmoid),
+                    ConvPoolLayer(image_shape=(11, 20, 37, 67),
+                        filter_shape=(40, 20, 6, 10),
+                        poolsize=(2,2),
+                        poolmode='max', activation_fn=sigmoid),
+                    FullyConnectedLayer(n_in=40*16*29, n_out=1000, p_dropout=0.825, activation_fn=sigmoid), 
+                    FullyConnectedLayer(n_in=1000, n_out=100, p_dropout=0.825, activation_fn=sigmoid), 
+                    SoftmaxLayer(n_in=100, n_out=5, p_dropout=0.825)], 11), 11, 
+                    0.28, 'vanilla', 0.0, 0.0, 1e-4, -3.0/epochs, 100, 10, "CDNN topology #2, the bigger, deeper topology"] 
+"""
+
 configs = [
             [
-                [FullyConnectedLayer(input_dims, 10, activation_fn=tf.nn.sigmoid), 
-                SoftmaxLayer(10, output_dims)], 
+                [FullyConnectedLayer(80*145, 100, activation_fn=tf.nn.sigmoid),
+                FullyConnectedLayer(1000, 100, activation_fn=tf.nn.sigmoid),
+                SoftmaxLayer(100, output_dims)], 
                 {    
                     'input_dims': input_dims,
                     'output_dims': output_dims,
                     'cost': cross_entropy, 
-                    'mb_n': 50,
+                    'mb_n': 11,
                     'optimization_type': 'gd',
-                    'optimization_term1': 0.5,
-                    'optimization_term1_decay_rate': 1.0,
+                    'optimization_term1': 0.28,
+                    'optimization_term1_decay_rate': 0.05,
                     'optimization_term2': 0.0,
                     'optimization_term3': 0.0,
                     'optimization_defaults': True,
-                    'regularization_rate': 0.0,
-                    'keep_prob': 1.0,
-                    'label': "m=1000"
+                    'regularization_type': 'l2',
+                    'regularization_rate': 1e-4,
+                    'keep_prob': 0.825,
+                    'label': "Initial LIRA Tests"
                 }
             ],
           ]
 #Default Network init values
 cost = cross_entropy
-weight_init = glorot_bengio
-bias_init = standard
+weight_init = weight_inits.glorot_bengio
+bias_init = bias_inits.standard
 
 #Clean up our title to get a filename, convert characters to lowercase and spaces to underscores
 output_filename = output_config['output_title'].lower().replace(" ", "_")
@@ -184,7 +201,7 @@ for config_i, config in enumerate(configs):
             net = Network(config[0], hps['input_dims'], hps['output_dims'], dataset, cost, weight_init, bias_init)
 
             #Finally, optimize and store the outputs
-            output_dict[run_i] = net.optimize(output_config, epochs, hps['mb_n'], hps['optimization_type'], hps['optimization_term1'], hps['optimization_term1_decay_rate'], hps['optimization_term2'], hps['optimization_term3'], hps['optimization_defaults'], hps['regularization_rate'], hps['keep_prob'])
+            output_dict[run_i] = net.optimize(output_config, epochs, hps['mb_n'], hps['optimization_type'], hps['optimization_term1'], hps['optimization_term1_decay_rate'], hps['optimization_term2'], hps['optimization_term3'], hps['optimization_defaults'], hps['regularization_type'], hps['regularization_rate'], hps['keep_prob'])
 
         #Record times once all runs have executed
         config_time = time.time() - config_start
