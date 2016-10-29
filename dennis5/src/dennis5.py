@@ -10,6 +10,9 @@ from costs import *
 import optimizers
 from optimizers import init_optimizer
 
+import regularizers
+from regularizers import regularizer
+
 import weight_inits
 from weight_inits import *
 
@@ -49,6 +52,13 @@ class Network(object):
             layer.evaluate(prev_layer.output, self.keep_prob, weight_init, bias_init)
         self.output = layers[-1].output
 
+        #Get a collection of our parameters for various things such as regularization later on
+        self.params = []
+        for layer in layers:
+            self.params.append(layer.w)
+            self.params.append(layer.b)
+
+
     """
     Optimize our cost function.
 
@@ -65,7 +75,7 @@ class Network(object):
     regularization_rate is our regularization rate
     keep_prob is the probability we keep a neuron, the (1 - dropout percentage.)
     """
-    def optimize(self, output_config, epochs, mb_n, optimization_type='gd', initial_optimization_term1=0.0, optimization_term1_decay_rate=1.0, optimization_term2=0.0, optimization_term3=0.0, optimization_defaults=True, regularization_rate=0.0, keep_prob=1.0):
+    def optimize(self, output_config, epochs, mb_n, optimization_type='gd', initial_optimization_term1=0.0, optimization_term1_decay_rate=1.0, optimization_term2=0.0, optimization_term3=0.0, optimization_defaults=True, regularization_type='l2', regularization_rate=0.0, keep_prob=1.0):
 
         #Initialize our final output dict for this run
         output_dict = {}
@@ -76,9 +86,6 @@ class Network(object):
         #Set up our exponential decay of our optimization term
         #staircase=False because it doesn't decay correctly if True
         optimization_term1 = tf.train.exponential_decay(initial_optimization_term1, current_step, epochs, optimization_term1_decay_rate, staircase=False)
-        
-        #Set the value of our cost function passed
-        self.cost = self.cost_type.evaluate(self.output, self.y)
 
         #Initialize our optimizer if it's a string keyword argument,
         #   otherwise we were given the tensorflow object
@@ -86,6 +93,12 @@ class Network(object):
             optimizer = init_optimizer(optimization_type, optimization_term1, optimization_term2, optimization_term3, defaults=optimization_defaults)
         else:
             optimizer = optimization_type
+
+        #Initialize our regularization term
+        regularization_term = regularizer(regularization_type, regularization_rate, self.params)
+        
+        #Set the value of our cost function passed, now that we have our regularization term
+        self.cost = self.cost_type.evaluate(self.output, self.y, regularization_term)
 
         #Initialize our training function. We pass in global step so as to increment our current step each time this is called.
         train_step = optimizer.minimize(self.cost, global_step=current_step)
