@@ -127,7 +127,7 @@ def generate_input_normalizer(training_data):
 
 def normalize_input(data, mean, stddev):
     print "Normalizing Input..."
-    data[0] = (data[0]-mean)/stddev
+    data[0] = data[0]*stddev + mean
     return data
 
 #### Load the data
