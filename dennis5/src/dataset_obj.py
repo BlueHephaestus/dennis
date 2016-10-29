@@ -10,6 +10,9 @@ import numpy as np
 import sample_loader
 from sample_loader import *
 
+import data_normalization
+from data_normalization import *
+
 
 def get_one_hot_m(v, width):
     #Given vector and width of each one hot, 
@@ -17,7 +20,6 @@ def get_one_hot_m(v, width):
     m = np.zeros(shape=(len(v), width))
     m[np.arange(len(v)), v] = 1
     return m
-
 
 """
 NECESSARY FORMATS
@@ -36,9 +38,22 @@ if there were only 20 images.
 """
 
 #Called by outside of this, uses the classes defined in this file to return dataset object
-def load_dataset_obj(p_training, p_validation, p_test, archive_dir, output_dims):
+def load_dataset_obj(p_training, p_validation, p_test, archive_dir, output_dims, data_normalization=True):
     #Obtain datasets
     training_data, validation_data, test_data = get_data_subsets(p_training = p_training, p_validation = p_validation, p_test = p_test, archive_dir=archive_dir)
+        
+    #Do whole data normalization on our input data, by getting the mean and stddev of the training data,
+    #Then keeping these metrics and applying to the other data subsets
+    if data_normalization:
+        input_normalizer_mean, input_normalizer_stddev = generate_input_normalizer(training_data)
+    else:
+        input_normalizer_mean = 0.0
+        input_normalizer_stddev = 1.0
+    normalization_data = [input_normalizer_mean, input_normalizer_stddev]
+
+    training_data = normalize_input(training_data, input_normalizer_mean, input_normalizer_stddev)
+    validation_data = normalize_input(validation_data, input_normalizer_mean, input_normalizer_stddev)
+    test_data = normalize_input(test_data, input_normalizer_mean, input_normalizer_stddev)
 
     #Convert ys in each to one hot vectors
     training_data[1] = get_one_hot_m(training_data[1], output_dims)
@@ -46,7 +61,7 @@ def load_dataset_obj(p_training, p_validation, p_test, archive_dir, output_dims)
     test_data[1] = get_one_hot_m(test_data[1], output_dims)
 
     #return dataset obj
-    return Dataset(training_data, validation_data, test_data)
+    return Dataset(training_data, validation_data, test_data), normalization_data
     
 
 class Dataset(object):

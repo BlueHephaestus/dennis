@@ -78,12 +78,15 @@ CONFIG DOCUMENTATION
         If you want to have as many arguments default as possible, then you can just use optimization_defaults = True for that.
         If you want none of them, then set optimization_defaults = False.
         However, if you want some on and some off, you can pass in the tensorflow optimization object instead of a string here.
+        Types: 'gd', 'adadelta', 'adagrad', 'adagrad-da', 'momentum', 'nesterov', 'adam', 'ftrl', 'rmsprop'
     optimization_term1: First optimization term
     optimization_term1_decay_rate: First optimization term's decay rate, usually only used for when this is learning rate.
     optimization_term2: Second optimization term
     optimization_term3: Third optimization term
     optimization_defaults: described under usage with optimization_type.
-    regularization_rate: Not implemented yet.
+    regularization_type: keyword string for the type of regularization to use. 
+        Currently supports: 'l1', 'l2'
+    regularization_rate: The regularization parameter/rate.
     keep_prob: the probability we keep any given neuron, (1-keep_prob) = dropout percentage.
     label: what the line will be labeled on our final graph.
 
@@ -130,7 +133,7 @@ CONFIG DOCUMENTATION
 
 configs = [
             [
-                [FullyConnectedLayer(80*145, 100, activation_fn=tf.nn.sigmoid),
+                [FullyConnectedLayer(80*145, 1000, activation_fn=tf.nn.sigmoid),
                 FullyConnectedLayer(1000, 100, activation_fn=tf.nn.sigmoid),
                 SoftmaxLayer(100, output_dims)], 
                 {    
@@ -147,6 +150,7 @@ configs = [
                     'regularization_type': 'l2',
                     'regularization_rate': 1e-4,
                     'keep_prob': 0.825,
+                    'data_normalization': True,
                     'label': "Initial LIRA Tests"
                 }
             ],
@@ -178,16 +182,16 @@ for config_i, config in enumerate(configs):
     if output_config['update_output']:
         for run_i in range(run_count):
 
+            #Get our hyper parameter dictionary
+            hps = config[1]#Hyper Parameters
+
             #Do this every run so as to avoid any accidental bias that might arise
             #Load our datasets
-            dataset = load_dataset_obj(p_training, p_validation, p_test, archive_dir, output_dims)
+            dataset, normalization_data = load_dataset_obj(p_training, p_validation, p_test, archive_dir, output_dims, hps['data_normalization'])
             
             #Print approximate percentage completion
             perc_complete = perc_completion(config_i, run_i, len(configs), run_count)
             print "--------%02f%% PERCENT COMPLETE--------" % perc_complete
-
-            #Get our hyper parameter dictionary
-            hps = config[1]#Hyper Parameters
 
             #Get our Network object differently depending on if optional parameters are present
             if 'cost' in hps:
@@ -221,14 +225,14 @@ for config_i, config in enumerate(configs):
 if output_config['save_net']
     #Save layers
     if save_net:
-        save_net(net, output_filename, normalize_data, input_dims)
+        save_net(net, output_filename, normalization_data, input_dims)
 """
 
 #Print time duration for each config
 for config_i, config_time in enumerate(config_times):
     print "Config %i averaged %f seconds" % (config_i, config_time / float(run_count))
 
-
+#Graph all our results
 if output_config['graph_output']:
     output_grapher = OutputGrapher(output_config, output_filename, configs, epochs, run_count)
     output_grapher.graph()
