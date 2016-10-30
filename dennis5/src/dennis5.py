@@ -1,4 +1,5 @@
-#import tensorflow, and start an interactive session so we can use our computational graph
+import gzip, pickle
+
 import tensorflow as tf
 
 import layers
@@ -18,9 +19,6 @@ from weight_inits import *
 
 import bias_inits
 from bias_inits import *
-
-#import costs
-#from costs import *
 
 class Network(object):
 
@@ -58,6 +56,8 @@ class Network(object):
             self.params.append(layer.w)
             self.params.append(layer.b)
 
+        #Initialize our saver now that we have  all the parameters in our model, so we can save later if we choose to.
+        self.saver = tf.train.Saver(self.params)
 
     """
     Optimize our cost function.
@@ -171,3 +171,13 @@ class Network(object):
         print "\tOPTIMIZATION COMPLETE"
 
         return output_dict
+
+    def save(self, filename):
+        #Save our network using our previously initialized saver
+        self.saver.save(self.sess, filename)
+
+    def predict(self, x):
+        #Predict output given our test x inputs and return
+        "NOT TESTED YET"
+        predictions = self.output.eval(feed_dict={self.x: x})
+        return predictions
