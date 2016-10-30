@@ -1,4 +1,5 @@
 """
+
 This one is only used to test for functionality and miscellaneous other tests,
     it is not as modular as dennis5.py and only uses MNIST.
     
