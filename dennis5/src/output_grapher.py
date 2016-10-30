@@ -56,7 +56,7 @@ class OutputGrapher(object):
             x = np.linspace(0, N, N)
             for output_type in range(self.output_types):
                 if self.subplot_seperate_configs:
-                    plt.subplot(config_count, self.output_types, config_i*self.output_types+output_type+1)#number of rows, number of cols, number of subplot
+                    plt.subplot(len(self.configs), self.output_types, config_i*self.output_types+output_type+1)#number of rows, number of cols, number of subplot
                 else:
                     plt.subplot(1, self.output_types, output_type+1)#number of rows, number of cols, number of subplot
                     plt.title(output_type_names[output_type])
@@ -69,16 +69,25 @@ class OutputGrapher(object):
                     #Decided to make this random colors instead
                     if not self.update_output: config_times = np.zeros_like(self.configs)
 
-                    if int(r) >= self.run_count:
-                        #Our final, average run
+                    if self.run_count == 1:
+                        #If we only run once, we don't have an average.
+                        #So we treat our one run like it was the average
                         if self.print_times:
                             plt.plot(x, y,  lw=2.0, label="%s-%fs" % (self.configs[config_i][1]['label'], config_times[config_i]/float(self.run_count)))
                         else:
                             plt.plot(x, y,  lw=2.0, label="%s" % (self.configs[config_i][1]['label']))
 
                     else:
-                        #Our normal runs
-                        plt.plot(x, y,  ls='--')
+                        if int(r) >= self.run_count:
+                            #Our final, average run
+                            if self.print_times:
+                                plt.plot(x, y,  lw=2.0, label="%s-%fs" % (self.configs[config_i][1]['label'], config_times[config_i]/float(self.run_count)))
+                            else:
+                                plt.plot(x, y,  lw=2.0, label="%s" % (self.configs[config_i][1]['label']))
+
+                        else:
+                            #Our normal runs
+                            plt.plot(x, y,  ls='--')
 
             plt.legend(bbox_to_anchor=(1.05, 1), loc=1, borderaxespad=0.)
 

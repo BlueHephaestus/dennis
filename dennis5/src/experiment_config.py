@@ -3,7 +3,7 @@ For configuring Dennis to run any sort of comparison or experimental configurati
 
 Currently running on my LIRA image recognition dataset, 
     with the problem-specific manipulation of data in 
-    dataset_obj.py 
+    dataset_obj.py and some stuff in sample_loader.py
 
 Feel free to change that accordingly as your data format changes, 
     the necessary dimensions and format are specified there.
@@ -44,22 +44,23 @@ output_dims = 5
 
 #Global config settings
 run_count = 3
-epochs = 800#Have to have this here since it needs to be the same across configs
+epochs = 1000#Have to have this here since it needs to be the same across configs
 
 #Data subsets and dataset
-archive_dir = "/home/darkelement/programming/machine_learning/tuberculosis_project/lira/lira1/data/samples_subs2.pkl.gz"
+#archive_dir = "/home/darkelement/programming/machine_learning/tuberculosis_project/lira/lira1/data/samples_subs2.pkl.gz"
+archive_dir = "/home/darkelement/lira/lira1/data/samples_subs2.pkl.gz"
 p_training =    0.8
 p_validation =  0.1
 p_test =        0.1
 
 output_config = {
-    'output_title': "NN Test 1",
+    'output_title': "Normalization tests before moving to LIRA project dir",
     'graph_output': True,
     'update_output': True,
-    'output_cost' : True,
     'subplot_seperate_configs': False,
     'print_times': False,
-    'save_net': True,
+    'save_net': False,
+    'output_cost' : True,
     'output_training_accuracy' : True,
     'output_validation_accuracy' : True,
     'output_test_accuracy' : True,
@@ -93,29 +94,6 @@ CONFIG DOCUMENTATION
 
 
 """
-""" configs = [
-            [
-                [Network([ 
-                    ConvPoolLayer(
-                        [5, 5, 1, 32], 
-                        [-1, 28, 28, 1], 
-                        conv_padding='VALID', 
-                        pool_padding='VALID', 
-                        activation_fn=tf.nn.relu
-                    ), 
-                    ConvPoolLayer(
-                        [5, 5, 32, 64], 
-                        [-1, 12, 12, 32], 
-                        conv_padding='VALID', 
-                        pool_padding='VALID', 
-                        activation_fn=tf.nn.relu
-                    ),
-                    FullyConnectedLayer(4*4*64, 10, keep_prob, activation_fn=tf.nn.sigmoid),
-                    SoftmaxLayer(10, 10)], input_dims, output_dims, cost=cross_entropy]
-                for r in range(run_count)
-            ],
-        ]
-"""
 """
                     [ConvPoolLayer(image_shape=(11, 1, 80, 145),
                         filter_shape=(20, 1, 7, 12),
@@ -133,9 +111,57 @@ CONFIG DOCUMENTATION
 
 configs = [
             [
-                [FullyConnectedLayer(80*145, 1000, activation_fn=tf.nn.sigmoid),
-                FullyConnectedLayer(1000, 100, activation_fn=tf.nn.sigmoid),
-                SoftmaxLayer(100, output_dims)], 
+                [ConvPoolLayer(
+                    [7, 12, 1, 20], 
+                    [-1, 80, 145, 1], 
+                    conv_padding='VALID', 
+                    pool_padding='VALID', 
+                    activation_fn=tf.nn.sigmoid,
+                ), 
+                ConvPoolLayer(
+                    [6, 10, 20, 40], 
+                    [-1, 37, 67, 20], 
+                    conv_padding='VALID', 
+                    pool_padding='VALID', 
+                    activation_fn=tf.nn.sigmoid,
+                ),
+                FullyConnectedLayer(40*16*29, 1000),
+                SoftmaxLayer(input_dims, output_dims)], 
+                {    
+                    'input_dims': input_dims,
+                    'output_dims': output_dims,
+                    'cost': cross_entropy, 
+                    'mb_n': 11,
+                    'optimization_type': 'gd',
+                    'optimization_term1': 0.28,
+                    'optimization_term1_decay_rate': 0.05,
+                    'optimization_term2': 0.0,
+                    'optimization_term3': 0.0,
+                    'optimization_defaults': True,
+                    'regularization_type': 'l2',
+                    'regularization_rate': 1e-4,
+                    'keep_prob': 0.825,
+                    'data_normalization': False,
+                    'label': "Initial LIRA Tests, without data normalization"
+                }
+            ],
+            [
+                [ConvPoolLayer(
+                    [7, 12, 1, 20], 
+                    [-1, 80, 145, 1], 
+                    conv_padding='VALID', 
+                    pool_padding='VALID', 
+                    activation_fn=tf.nn.sigmoid,
+                ), 
+                ConvPoolLayer(
+                    [6, 10, 20, 40], 
+                    [-1, 37, 67, 20], 
+                    conv_padding='VALID', 
+                    pool_padding='VALID', 
+                    activation_fn=tf.nn.sigmoid,
+                ),
+                FullyConnectedLayer(40*16*29, 1000),
+                SoftmaxLayer(input_dims, output_dims)], 
                 {    
                     'input_dims': input_dims,
                     'output_dims': output_dims,
@@ -151,7 +177,7 @@ configs = [
                     'regularization_rate': 1e-4,
                     'keep_prob': 0.825,
                     'data_normalization': True,
-                    'label': "Initial LIRA Tests"
+                    'label': "Initial LIRA Tests, with data normalization"
                 }
             ],
           ]
@@ -221,12 +247,9 @@ for config_i, config in enumerate(configs):
     #For prettiness, print completion
     if config_i == len(configs)-1: print "--------100%% PERCENT COMPLETE--------" 
 
-"""
-if output_config['save_net']
-    #Save layers
-    if save_net:
-        save_net(net, output_filename, normalization_data, input_dims)
-"""
+if output_config['save_net'] and output_config['update_output']:
+    #Save layers if we have layers to save
+    save_net(net, output_filename, normalization_data, input_dims)
 
 #Print time duration for each config
 for config_i, config_time in enumerate(config_times):

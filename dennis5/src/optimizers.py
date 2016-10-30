@@ -32,7 +32,7 @@ def init_optimizer(optimization_type, optimization_term1, optimization_term2, op
     elif optimization_type == 'adam':
         if defaults:
             return tf.train.AdamOptimizer()
-        return tf.train.AdamOptimizer(learning_rate=optimization_term1, beta1=optimization_term2, beta2=optimization_term)
+        return tf.train.AdamOptimizer(learning_rate=optimization_term1, beta1=optimization_term2, beta2=optimization_term3)
 
     elif optimization_type == 'ftrl':
         if defaults:

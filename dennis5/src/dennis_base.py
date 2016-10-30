@@ -40,3 +40,10 @@ def save_output(filename, output_dict):
     f.write("\n")
     #wrap up by closing our file behind us.
     f.close()
+
+def save_net(net, output_filename, normalize_data, input_dims):
+    print "Saving Neural Network Layers..."
+    net.save('../saved_networks/%s' % output_filename)
+    f = open('../saved_networks/%s_metadata.txt' % (output_filename), 'w')
+    f.write("{0}\n{1}\n{2}".format(normalize_data[0], normalize_data[1], input_dims))
+    f.close()
