@@ -83,10 +83,8 @@ class ConvPoolLayer(object):
         self.pool_padding = pool_padding
         self.pool_mode = pool_mode
         self.activation_fn = activation_fn
-        self.weight_init = weight_init
-        self.bias_init = bias_init
 
-    def evaluate(self, x):
+    def evaluate(self, x, keep_prob, weight_init, bias_init):
         #Reshape our x
         self.inpt = tf.reshape(x, self.image_shape)
 
@@ -94,11 +92,13 @@ class ConvPoolLayer(object):
         Set our weights with our weight_init object, given weight filter and input shape
             We do [1:] because we are getting the prod of all the elements in it for our
             Glorot Bengio Init, which needs the number of inputs (we don't include mb_n)
+        Note: these need to stay in evaluate so that we can get new weights every time we want to do a sample run,
+            and not accidentally get sampling bias as a result of low sample count
         """
-        self.w = self.weight_init(self.filter_shape, np.prod(self.image_shape[1:]))
+        self.w = weight_init(self.filter_shape, np.prod(self.image_shape[1:]))
 
         #Set our weights using our bias init object, given the depth for convpool layer
-        self.b = self.bias_init([self.filter_shape[0]])
+        self.b = bias_init([self.filter_shape[0]])
         #self.b = tf.Variable(tf.truncated_normal(self.filter_shape[0], stddev=1.0))
 
         #Get output of convolutional layer
@@ -110,41 +110,36 @@ class ConvPoolLayer(object):
 
 class FullyConnectedLayer(object):
 
-    def __init__(self, n_in, n_out, keep_prob, weight_init=glorot_bengio, bias_init=standard, activation_fn=tf.nn.sigmoid):
+    def __init__(self, n_in, n_out, weight_init=glorot_bengio, bias_init=standard, activation_fn=tf.nn.sigmoid):
         self.n_in = n_in
         self.n_out = n_out
-        self.keep_prob = keep_prob
-        self.weight_init = weight_init
-        self.bias_init = bias_init
         self.activation_fn = activation_fn
 
-    def evaluate(self, x):
+    def evaluate(self, x, keep_prob, weight_init, bias_init):
         #Reshape our x
         self.inpt = tf.reshape(x, [-1, self.n_in])
 
-        self.w = self.weight_init([self.n_in, self.n_out], self.n_in)
-        self.b = self.bias_init([self.n_out])
+        self.w = weight_init([self.n_in, self.n_out], self.n_in)
+        self.b = bias_init([self.n_out])
 
         #Apply operations
         fc_out = self.activation_fn(tf.matmul(self.inpt, self.w) + self.b)
 
         #Apply dropout, obtain our output
-        self.output = tf.nn.dropout(fc_out, self.keep_prob)
+        self.output = tf.nn.dropout(fc_out, keep_prob)
 
 class SoftmaxLayer(object):
 
     def __init__(self, n_in, n_out, weight_init=glorot_bengio, bias_init=standard):
         self.n_in = n_in
         self.n_out = n_out
-        self.weight_init = weight_init
-        self.bias_init = bias_init
 
-    def evaluate(self, x):
+    def evaluate(self, x, keep_prob, weight_init, bias_init):
         #Reshape our x
         self.inpt = tf.reshape(x, [-1, self.n_in])
 
-        self.w = self.weight_init([self.n_in, self.n_out], self.n_in)
-        self.b = self.bias_init([self.n_out])
+        self.w = weight_init([self.n_in, self.n_out], self.n_in)
+        self.b = bias_init([self.n_out])
 
         #Apply operations
         #No dropout in softmax layers, return output
