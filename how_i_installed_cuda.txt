@@ -156,3 +156,7 @@ IF YOU CAN'T USE MOST RECENT DRIVERS, this is all I know. I am stuck here as wel
   Download right driver http://www.nvidia.com/object/unix.html
     -if you don't know then download the right general one and it will tell you the right one
 
+NOTES ON TENSORFLOW
+  Install most recent cudnn, if you do 5.0.5 just tell it version 5
+  make sure to use bazel build -c opt --config=cuda //tensorflow/tools/pip_package:build_pip_package not the one without --config=cuda
+
