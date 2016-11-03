@@ -1,6 +1,8 @@
 #Description
 
-The code here is D.E.N.N.I.S. - Dark Element's Neural Networking Intelligent System.
+The code here is D.E.N.N.I.S. - Dark Element's Neural Networking Intelligent System,
+
+A modular and efficient neural networking system to allow quick deploying of models for deep learning problems, in tensorflow.
 
 What started as simple experimentation with some code I obtained from [Michael Nielsen's awesome book on machine learning](http://neuralnetworksanddeeplearning.com/chap1.html), has since developed into my own system for deep learning in general. MK1 - MK4 were dedicated to speech recognition of a few of my spoken words, however I then started on an image recognition research project, with which I modified my already existing code for MK4. I made several improvements to Dennis there, and decided to avoid having a bunch of different repositories containing massive tracts of base deep learning code. From now until the foreseeable future, this is the parent, with the children being the applications to various deep learning projects. 
 
