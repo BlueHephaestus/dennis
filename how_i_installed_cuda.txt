@@ -1,3 +1,5 @@
+#Only follow these if the simple instructions on the cuda donwload page didn't work, or if you got some of the errors I got.
+
 #FRESH INSTALL (I used geforce gtx760 on Ubuntu 15.04 amd64), with most recent drivers and setup.
 
 Install prerequisite packages for development *
