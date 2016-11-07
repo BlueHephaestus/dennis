@@ -17,7 +17,7 @@ def generate_input_normalizer(training_data):
             return input
     '''
     input_x = [input for sample in training_data[0] for input in sample]#for sample in x: for input in x: return input
-    mean = sum(input_x)/float(len(input_x))
+    mean = np.mean(input_x)
     stddev = np.linalg.norm(input_x-mean)/np.sqrt(len(input_x))
     return mean, stddev
 
