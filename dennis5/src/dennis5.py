@@ -172,12 +172,27 @@ class Network(object):
 
         return output_dict
 
-    def save(self, filename):
-        #Save our network using our previously initialized saver
+    def save(self, filename, mean, stddev, nn_layers, input_dims, output_dims, cost_type, weight_init, bias_init): 
+
+        #Adjust for file paths
+        filename = "../saved_networks/%s" % filename
+
+        #Save our network params using our previously initialized saver
         self.saver.save(self.sess, filename)
+
+        #Save the rest of our metadata in a pkl so we can open it up easily again later
+        metadata = [mean, stddev, nn_layers, input_dims, output_dims, cost_type, weight_init, bias_init]
+        metadata_filename = "%s_metadata.pkl.gz" % filename
+        f = gzip.open(metadata_filename, "wb")
+        pickle.dump((metadata), f, protocol=-1)
+        f.close()
+
+    def restore(self, filename):
+        #Restore our network from the filename given
+        self.sess.run(tf.initialize_all_variables())
+        self.saver.restore(self.sess, filename)
 
     def predict(self, x):
         #Predict output given our test x inputs and return
-        "NOT TESTED YET"
-        predictions = self.output.eval(feed_dict={self.x: x})
+        predictions = self.output.eval(feed_dict={self.x: x, self.keep_prob: 1.0})
         return predictions
