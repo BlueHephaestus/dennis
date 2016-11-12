@@ -44,10 +44,10 @@ class Network(object):
 
         #Propogate our input forwards throughout the network layers
         init_layer = layers[0]
-        init_layer.evaluate(self.x, self.keep_prob, weight_init, bias_init)
+        init_layer.evaluate(self.x, self.keep_prob, weight_init, bias_init, 0)
         for i in xrange(1, len(layers)):
             prev_layer, layer = layers[i-1], layers[i]
-            layer.evaluate(prev_layer.output, self.keep_prob, weight_init, bias_init)
+            layer.evaluate(prev_layer.output, self.keep_prob, weight_init, bias_init, i)
         self.output = layers[-1].output
 
         #Get a collection of our parameters for various things such as regularization later on
@@ -189,7 +189,7 @@ class Network(object):
 
     def restore(self, filename):
         #Restore our network from the filename given
-        self.sess.run(tf.initialize_all_variables())
+        #self.sess.run(tf.initialize_all_variables())
         self.saver.restore(self.sess, filename)
 
     def predict(self, x):

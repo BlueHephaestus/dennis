@@ -10,7 +10,7 @@ Feel free to change that accordingly as your data format changes,
 
 -Blake Edwards / Dark Element
 """
-import sys, json, time
+import sys, json, time, copy
 import numpy as np
 import tensorflow as tf
 
@@ -111,57 +111,7 @@ CONFIG DOCUMENTATION
 
 configs = [
             [
-                [ConvPoolLayer(
-                    [7, 12, 1, 20], 
-                    [-1, 80, 145, 1], 
-                    conv_padding='VALID', 
-                    pool_padding='VALID', 
-                    activation_fn=tf.nn.sigmoid,
-                ), 
-                ConvPoolLayer(
-                    [6, 10, 20, 40], 
-                    [-1, 37, 67, 20], 
-                    conv_padding='VALID', 
-                    pool_padding='VALID', 
-                    activation_fn=tf.nn.sigmoid,
-                ),
-                FullyConnectedLayer(40*16*29, 1000),
-                SoftmaxLayer(input_dims, output_dims)], 
-                {    
-                    'input_dims': input_dims,
-                    'output_dims': output_dims,
-                    'cost': cross_entropy, 
-                    'mb_n': 11,
-                    'optimization_type': 'gd',
-                    'optimization_term1': 0.28,
-                    'optimization_term1_decay_rate': 0.05,
-                    'optimization_term2': 0.0,
-                    'optimization_term3': 0.0,
-                    'optimization_defaults': True,
-                    'regularization_type': 'l2',
-                    'regularization_rate': 1e-4,
-                    'keep_prob': 0.825,
-                    'data_normalization': False,
-                    'label': "Initial LIRA Tests, without data normalization"
-                }
-            ],
-            [
-                [ConvPoolLayer(
-                    [7, 12, 1, 20], 
-                    [-1, 80, 145, 1], 
-                    conv_padding='VALID', 
-                    pool_padding='VALID', 
-                    activation_fn=tf.nn.sigmoid,
-                ), 
-                ConvPoolLayer(
-                    [6, 10, 20, 40], 
-                    [-1, 37, 67, 20], 
-                    conv_padding='VALID', 
-                    pool_padding='VALID', 
-                    activation_fn=tf.nn.sigmoid,
-                ),
-                FullyConnectedLayer(40*16*29, 1000),
-                SoftmaxLayer(input_dims, output_dims)], 
+                [SoftmaxLayer(input_dims, output_dims)], 
                 {    
                     'input_dims': input_dims,
                     'output_dims': output_dims,
@@ -177,7 +127,7 @@ configs = [
                     'regularization_rate': 1e-4,
                     'keep_prob': 0.825,
                     'data_normalization': True,
-                    'label': "Initial LIRA Tests, with data normalization"
+                    'label': "Saving tests"
                 }
             ],
           ]
@@ -185,6 +135,8 @@ configs = [
 cost = cross_entropy
 weight_init = weight_inits.glorot_bengio
 bias_init = bias_inits.standard
+
+nn_layers = copy.deepcopy(configs[0][0])
 
 #Clean up our title to get a filename, convert characters to lowercase and spaces to underscores
 output_filename = output_config['output_title'].lower().replace(" ", "_")
@@ -248,8 +200,9 @@ for config_i, config in enumerate(configs):
     if config_i == len(configs)-1: print "--------100%% PERCENT COMPLETE--------" 
 
 if output_config['save_net'] and output_config['update_output']:
-    #Save layers if we have layers to save
-    save_net(net, output_filename, normalization_data, input_dims)
+    #Save all of our network data
+    print "Saving Model..."
+    net.save(output_filename, normalization_data[0], normalization_data[1], nn_layers, input_dims, output_dims, cost, weight_init, bias_init)
 
 #Print time duration for each config
 for config_i, config_time in enumerate(config_times):
