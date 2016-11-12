@@ -30,8 +30,6 @@ class Network(object):
         self.weight_init = weight_init
         self.bias_init = bias_init
 
-        #Initialize interactive session
-        self.sess = tf.InteractiveSession()
 
         #Initialize symbolic variables,
         #x as a float input of shape input_dims,
@@ -42,7 +40,8 @@ class Network(object):
         #Dropout percentage
         self.keep_prob = tf.placeholder(tf.float32)
 
-        #Propogate our input forwards throughout the network layers
+        #Propogate our input forwards throughout the network layers,
+        #   building our computational graph between input and output
         init_layer = layers[0]
         init_layer.evaluate(self.x, self.keep_prob, weight_init, bias_init, 0)
         for i in xrange(1, len(layers)):
@@ -50,14 +49,22 @@ class Network(object):
             layer.evaluate(prev_layer.output, self.keep_prob, weight_init, bias_init, i)
         self.output = layers[-1].output
 
+        #Initialize saver so we catch all variables
+        self.saver = tf.train.Saver(tf.all_variables())
+
+        #Initialize interactive session
+        self.sess = tf.InteractiveSession()
+
         #Get a collection of our parameters for various things such as regularization later on
         self.params = []
         for layer in layers:
             self.params.append(layer.w)
             self.params.append(layer.b)
 
+        """
         #Initialize our saver now that we have  all the parameters in our model, so we can save later if we choose to.
         self.saver = tf.train.Saver(self.params)
+        """
 
     """
     Optimize our cost function.
@@ -168,6 +175,7 @@ class Network(object):
             print"\tValidation Accuracy: %f%%" % (validation_accuracy)
         if output_config['output_test_accuracy']:
             print"\tTest Accuracy: %f%%" % (test_accuracy)
+
         print "\tOPTIMIZATION COMPLETE"
 
         return output_dict
@@ -180,6 +188,9 @@ class Network(object):
         #Save our network params using our previously initialized saver
         self.saver.save(self.sess, filename)
 
+        #Close our session since this is the last thing we will execute in optimization
+        self.sess.close()
+
         #Save the rest of our metadata in a pkl so we can open it up easily again later
         metadata = [mean, stddev, nn_layers, input_dims, output_dims, cost_type, weight_init, bias_init]
         metadata_filename = "%s_metadata.pkl.gz" % filename
@@ -187,12 +198,12 @@ class Network(object):
         pickle.dump((metadata), f, protocol=-1)
         f.close()
 
-    def restore(self, filename):
+    def restore(self, sess, filename):
         #Restore our network from the filename given
         #self.sess.run(tf.initialize_all_variables())
-        self.saver.restore(self.sess, filename)
+        self.saver.restore(sess, filename)
 
-    def predict(self, x):
+    def predict(self, sess, x):
         #Predict output given our test x inputs and return
-        predictions = self.output.eval(feed_dict={self.x: x, self.keep_prob: 1.0})
+        predictions = sess.run(self.output, feed_dict={self.x: x, self.keep_prob: 1.0})
         return predictions
