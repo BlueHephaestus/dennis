@@ -52,19 +52,11 @@ class Network(object):
         #Initialize saver so we catch all variables
         self.saver = tf.train.Saver(tf.all_variables())
 
-        #Initialize interactive session
-        self.sess = tf.InteractiveSession()
-
         #Get a collection of our parameters for various things such as regularization later on
         self.params = []
         for layer in layers:
             self.params.append(layer.w)
             self.params.append(layer.b)
-
-        """
-        #Initialize our saver now that we have  all the parameters in our model, so we can save later if we choose to.
-        self.saver = tf.train.Saver(self.params)
-        """
 
     """
     Optimize our cost function.
@@ -116,6 +108,8 @@ class Network(object):
         accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
 
         #Initialize all the variables into our computational graph
+        #with tf.Session() as self.sess:
+        self.sess = tf.InteractiveSession()
         self.sess.run(tf.initialize_all_variables())
 
         for step in range(epochs):
@@ -156,7 +150,8 @@ class Network(object):
             output_dict[step] = []
 
             #Add our output types 
-            #We convert to float because we can't json serialize np.float32, we can only do that with python's float
+            #We convert to float because we can't json serialize np.float32, we can only do that with python's float dtype
+
             if output_config['output_cost']:
                 output_dict[step].append(float(step_cost))
             if output_config['output_training_accuracy']:
@@ -188,9 +183,6 @@ class Network(object):
         #Save our network params using our previously initialized saver
         self.saver.save(self.sess, filename)
 
-        #Close our session since this is the last thing we will execute in optimization
-        self.sess.close()
-
         #Save the rest of our metadata in a pkl so we can open it up easily again later
         metadata = [mean, stddev, nn_layers, input_dims, output_dims, cost_type, weight_init, bias_init]
         metadata_filename = "%s_metadata.pkl.gz" % filename
@@ -202,6 +194,7 @@ class Network(object):
         #Restore our network from the filename given
         #self.sess.run(tf.initialize_all_variables())
         self.saver.restore(sess, filename)
+        return sess
 
     def predict(self, sess, x):
         #Predict output given our test x inputs and return
