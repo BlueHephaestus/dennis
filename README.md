@@ -14,11 +14,11 @@ Note: If you ever want the data I used, contact me. I don't want to be like all 
 
 While rewriting and upgrading DENNIS in theano and tensorflow, I realized I was spending too much time worried about **implementation** of algorithms, instead of **development and testing** of algorithms (the fun part). So instead of continuing the massive project of a modular and efficient machine learning library, I've given much of that worry to Keras, which was made by a much larger and more experienced group than I.
 
-This is not to say this repository is dead, far from it. Lucky for me, there are a lot of features I've added into DENNIS over time, and those are still very useful (e.g. dataset object, graphing of results). I have just now moved many of those over to the MK6, however there are still some that need some fine tuning. Those will be staying, as I've found them extremely useful. 
+This is not to say this repository is dead, far from it. Lucky for me, there are a lot of features I've added into DENNIS over time, and those are still very useful (e.g. dataset object, graphing of results). I have just now moved many of those over to the MK6, however there are still some that need some fine tuning. 
 
-Since I've found those extremely useful, I will continue to add in other features as I see fit. In summary,
+In summary, 
 
-I will add in any features that I think are needed and useful, just as comparing multiple configurations at once was needed and useful; But with Keras I can also do far more without having to remake my entire project, such as setting up a Recurrent Neural Network.
+I will add in any features that I think are needed and useful, just as comparing multiple configurations at once was needed and useful; But with Keras I can also do far more without having to remake my entire project, such as setting up a Recurrent Neural Network instead of a Convolutional one.
 
 ##MK. 5 - Now with Tensorflow!
 
