@@ -2,15 +2,25 @@
 
 The code here is D.E.N.N.I.S. - Dark Element's Neural Networking Intelligent System,
 
-A modular and efficient neural networking system to allow quick deploying of models for deep learning problems, in tensorflow.
+A modular and efficient neural networking system to allow quick deploying of models for deep learning problems, in ~~numpy and python~~ ~~theano~~ ~~tensorflow~~ Keras!
 
 What started as simple experimentation with some code I obtained from [Michael Nielsen's awesome book on machine learning](http://neuralnetworksanddeeplearning.com/chap1.html), has since developed into my own system for deep learning in general. MK1 - MK4 were dedicated to speech recognition of a few of my spoken words, however I then started on an image recognition research project, with which I modified my already existing code for MK4. I made several improvements to Dennis there, and decided to avoid having a bunch of different repositories containing massive tracts of base deep learning code. From now until the foreseeable future, this is the parent, with the children being the applications to various deep learning projects. 
 
-I am currently making some major upgrades to Dennis as I also move him over to Tensorflow, in MK5.
+MK5 used Tensorflow, and now MK6 uses Keras.
 
 Note: If you ever want the data I used, contact me. I don't want to be like all the sources that keep their data private or at a price.
 
-##MK. 5 - No longer just for music
+##MK. 6 - Now with Keras!
+
+While rewriting and upgrading DENNIS in theano and tensorflow, I realized I was spending too much time worried about **implementation** of algorithms, instead of **development and testing** of algorithms (the fun part). So instead of continuing the massive project of a modular and efficient machine learning library, I've given much of that worry to Keras, which was made by a much larger and more experienced group than I.
+
+This is not to say this repository is dead, far from it. Lucky for me, there are a lot of features I've added into DENNIS over time, and those are still very useful (e.g. dataset object, graphing of results). I have just now moved many of those over to the MK6, however there are still some that need some fine tuning. Those will be staying, as I've found them extremely useful. 
+
+Since I've found those extremely useful, I will continue to add in other features as I see fit. In summary,
+
+I will add in any features that I think are needed and useful, just as comparing multiple configurations at once was needed and useful; But with Keras I can also do far more without having to remake my entire project, such as setting up a Recurrent Neural Network.
+
+##MK. 5 - Now with Tensorflow!
 
 I am currently remodeling all of Dennis as I move him to Tensorflow, and thanks largely in part to the incredible Tensorflow library, he will be far more flexible, modular, and robust once this is complete. 
 
