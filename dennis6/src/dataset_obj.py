@@ -4,7 +4,8 @@ For easily getting an object with the methods and objects we need to access easi
 -Blake Edwards / Dark Element
 """
 
-import sys, gzip, cPickle
+import sys, os, gzip, cPickle, json
+import h5py
 import numpy as np
 
 import data_normalization
@@ -25,7 +26,7 @@ def unison_shuffle(a, b):
     np.random.set_state(rng_state)
     np.random.shuffle(b)
 
-def get_data_subsets_lira(archive_dir, subsection_n, p_training=0.8, p_validation=0.1, p_test=0.1):
+def get_data_subsets_lira(archive_dir, p_training=0.8, p_validation=0.1, p_test=0.1):
     """
     Get our dataset array and seperate it into training, validation, and test data
         according to the percentages passed in.
@@ -35,67 +36,121 @@ def get_data_subsets_lira(archive_dir, subsection_n, p_training=0.8, p_validatio
         10% - Validation
         10% - Test
 
-    This one is specific for the LIRA implementation, that has inputs as shape (n_samples*64, 80*145).
-        In order to shuffle fairly, we divide according to the number of samples, then shuffle.
+    For our LIRA implementation, we have some samples that are obtained by splitting a big image into subsection_n subsections,
+        and we also have some samples that are individual samples. 
+    Our metadata is of the format [subsection_n, sample_n, whole_image_n, individual_sub_n], where 
+        subsection_n = # of subsections per whole image
+        sample_n = total number of samples, whole_image_n + individual_sub_n
+        whole_image_n = # of whole images used to obtain samples
+        individual_sub_n = # of individual subsections
 
+    So we're going to take all the whole image samples according to image, shuffle them by image (in sections of subsection_n),
+        shuffle the individual ones however, and then put them all back together.
     This way, we avoid getting a subsection in the training data that is right next to one in the test data, 
-        thus getting biased accuracies.
+        which would give us biased accuracies.
     """
-    print "Getting Training, Validation, and Test Data..."
+    print "Loading Training, Validation, and Test Data..."
 
-    f = gzip.open(archive_dir, 'rb')
-    data = cPickle.load(f)
+    #Load our hdf5 file to get data and metadata
+    with h5py.File(archive_dir,'r') as hf:
+        data = [np.array(hf.get("x")), np.array(hf.get("y"))]
+        metadata = np.array(hf.get("metadata"))
 
-    n_samples = int(data[0].shape[0]//subsection_n)
-    data[0] = np.split(data[0], n_samples)
-    data[1] = np.split(data[1], n_samples)
+    #Load metadata
+    subsection_n, sample_n, whole_image_n, individual_sub_n, label_dict = metadata
+    subsection_n = int(subsection_n)
+    sample_n = int(sample_n)
+    whole_img_n = int(whole_image_n)
+    individual_sub_n = int(individual_sub_n)
+    label_dict = json.loads(label_dict)
 
+    #Split into our whole image samples and our individual rim samples
+    whole_img_samples = [data[0][:whole_img_n], data[1][:whole_img_n]]
+    individual_sub_samples = [data[0][whole_img_n:], data[1][whole_img_n:]]
+
+    #Split these according to whole image, whole_image_n//subsection_n to get number of whole images
+    whole_img_samples[0] = np.split(whole_img_samples[0], whole_img_n//subsection_n)
+    whole_img_samples[1] = np.split(whole_img_samples[1], whole_img_n//subsection_n)
+
+    #Create these beforehand
     training_data = [[], []]
     validation_data = [[], []]
     test_data = [[], []]
 
-    n_training_subset = np.floor(p_training*n_samples)
-    n_validation_subset = np.floor(p_validation*n_samples)
-    #Assign this to it's respective percentage and whatever is left
-    n_test_subset = n_samples - n_training_subset - n_validation_subset
+    whole_img_training_data = [[], []]
+    whole_img_validation_data = [[], []]
+    whole_img_test_data = [[], []]
+
+    individual_sub_training_data = [[], []]
+    individual_sub_validation_data = [[], []]
+    individual_sub_test_data = [[], []]
+
+    #Get our respective subset sizes, with test being the excess
+    whole_img_training_subset_n = int(np.floor(p_training*whole_img_n//subsection_n))
+    whole_img_validation_subset_n = int(np.floor(p_validation*whole_img_n//subsection_n))
+    whole_img_test_subset_n = whole_img_n - whole_img_training_subset_n - whole_img_validation_subset_n
+
+    individual_sub_training_subset_n = int(np.floor(p_training*individual_sub_n))
+    individual_sub_validation_subset_n = int(np.floor(p_validation*individual_sub_n))
+    individual_sub_test_subset_n = individual_sub_n - individual_sub_training_subset_n - individual_sub_validation_subset_n
 
     #Shuffle while retaining element correspondence
-    print "Shuffling data..."
-    unison_shuffle(data[0], data[1])
+    print "Shuffling Data..."
+    unison_shuffle(whole_img_samples[0], whole_img_samples[1])
+    unison_shuffle(individual_sub_samples[0], individual_sub_samples[1])
 
     #Get actual subsets
-    data_x_subsets = np.split(data[0], [n_training_subset, n_training_subset+n_validation_subset])#basically the lines we cut to get our 3 subsections
-    data_y_subsets = np.split(data[1], [n_training_subset, n_training_subset+n_validation_subset])
+    print "Getting Data Subsets..."
+    whole_img_x_subsets = np.split(whole_img_samples[0], [whole_img_training_subset_n, whole_img_training_subset_n+whole_img_validation_subset_n])#basically the lines we cut to get our 3 subsections
+    whole_img_y_subsets = np.split(whole_img_samples[1], [whole_img_training_subset_n, whole_img_training_subset_n+whole_img_validation_subset_n])
+    individual_sub_x_subsets = np.split(individual_sub_samples[0], [individual_sub_training_subset_n, individual_sub_training_subset_n+individual_sub_validation_subset_n])#basically the lines we cut to get our 3 subsections
+    individual_sub_y_subsets = np.split(individual_sub_samples[1], [individual_sub_training_subset_n, individual_sub_training_subset_n+individual_sub_validation_subset_n])
 
-    training_data[0] = data_x_subsets[0]
-    validation_data[0] = data_x_subsets[1]
-    test_data[0] = data_x_subsets[2]
+    #Get our respective susbsets
+    whole_img_training_data[0] = whole_img_x_subsets[0]
+    whole_img_validation_data[0] = whole_img_x_subsets[1]
+    whole_img_test_data[0] = whole_img_x_subsets[2]
 
-    training_data[1] = data_y_subsets[0]
-    validation_data[1] = data_y_subsets[1]
-    test_data[1] = data_y_subsets[2]
+    whole_img_training_data[1] = whole_img_y_subsets[0]
+    whole_img_validation_data[1] = whole_img_y_subsets[1]
+    whole_img_test_data[1] = whole_img_y_subsets[2]
+
+    individual_sub_training_data[0] = individual_sub_x_subsets[0]
+    individual_sub_validation_data[0] = individual_sub_x_subsets[1]
+    individual_sub_test_data[0] = individual_sub_x_subsets[2]
+
+    individual_sub_training_data[1] = individual_sub_y_subsets[0]
+    individual_sub_validation_data[1] = individual_sub_y_subsets[1]
+    individual_sub_test_data[1] = individual_sub_y_subsets[2]
 
     """
+    For the whole image data,
     Now that we've shuffled and split relative to images(instead of subsections), collapse back to matrix (or vector if Y)
         We do -1 so that it infers we want to combine the first two dimensions, and we have the last argument because we
         want it to keep the same last dimension. repeat this for all of the subsets
     Since Y's are just vectors, we can easily just flatten
     """
-    training_data[0] = training_data[0].reshape(-1, training_data[0].shape[-1])
-    training_data[1] = training_data[1].flatten()
-    validation_data[0] = validation_data[0].reshape(-1, validation_data[0].shape[-1])
-    validation_data[1] = validation_data[1].flatten()
-    test_data[0] = test_data[0].reshape(-1, test_data[0].shape[-1])
-    test_data[1] = test_data[1].flatten()
+    whole_img_training_data[0] = whole_img_training_data[0].reshape(-1, whole_img_training_data[0].shape[-1])
+    whole_img_training_data[1] = whole_img_training_data[1].flatten()
+    whole_img_validation_data[0] = whole_img_validation_data[0].reshape(-1, whole_img_validation_data[0].shape[-1])
+    whole_img_validation_data[1] = whole_img_validation_data[1].flatten()
+    whole_img_test_data[0] = whole_img_test_data[0].reshape(-1, whole_img_test_data[0].shape[-1])
+    whole_img_test_data[1] = whole_img_test_data[1].flatten()
 
-    print "# of Samples per subset:"
-    print "\t{}".format(training_data[0].shape[0]/64)
-    print "\t{}".format(validation_data[0].shape[0]/64)
-    print "\t{}".format(test_data[0].shape[0]/64)
+    #FINALLY, we combine image and rim into entire dataset
+    print "Assigning Datasets..."
+    training_data[0] = np.concatenate((whole_img_training_data[0], individual_sub_training_data[0]), axis=0)
+    training_data[1] = np.concatenate((whole_img_training_data[1], individual_sub_training_data[1]), axis=0)
+    validation_data[0] = np.concatenate((whole_img_validation_data[0], individual_sub_validation_data[0]), axis=0)
+    validation_data[1] = np.concatenate((whole_img_validation_data[1], individual_sub_validation_data[1]), axis=0)
+    test_data[0] = np.concatenate((whole_img_test_data[0], individual_sub_test_data[0]), axis=0)
+    test_data[1] = np.concatenate((whole_img_test_data[1], individual_sub_test_data[1]), axis=0)
 
-    print "Check to make sure these have all the different classes"
-    print validation_data[1]
-    print list(test_data[1])
+    #Print our number of samples for everything. Tabs added for cleanliness.
+    print "Total Samples:\t\t\t%i" % (sample_n)
+    print "\tTraining Samples:\t%i (%f%%)" % (training_data[0].shape[0], p_training*100)
+    print "\tValidation Samples:\t%i (%f%%)" % (validation_data[0].shape[0], p_validation*100)
+    print "\tTest Samples:\t\t%i (%f%%)" % (test_data[0].shape[0], p_test*100)
 
     return training_data, validation_data, test_data
 
@@ -164,13 +219,13 @@ if there were only 20 images.
 """
 
 #Called by outside of this, uses the classes defined in this file to return dataset object
-def load_dataset_obj(p_training, p_validation, p_test, archive_dir, output_dims, data_normalization=True, lira_data=False, subsection_n=0):
+def load_dataset_obj(p_training, p_validation, p_test, archive_dir, output_dims, data_normalization=True, lira_data=False):
     #Obtain datasets
     if lira_data:
         #Use our subsection_n and sample_loader specific function
-        training_data, validation_data, test_data = get_data_subsets_lira(archive_dir, subsection_n, p_training = p_training, p_validation = p_validation, p_test = p_test)
+        training_data, validation_data, test_data = get_data_subsets_lira(archive_dir, p_training=p_training, p_validation=p_validation, p_test=p_test)
     else:
-        training_data, validation_data, test_data = get_data_subsets(archive_dir, p_training = p_training, p_validation = p_validation, p_test = p_test)
+        training_data, validation_data, test_data = get_data_subsets(archive_dir, p_training=p_training, p_validation=p_validation, p_test=p_test)
         
     #Do whole data normalization on our input data, by getting the mean and stddev of the training data,
     #Then keeping these metrics and applying to the other data subsets
@@ -227,3 +282,5 @@ class validation_subset(DataSubset):
 class test_subset(DataSubset):
     def __init__(self, data):
         DataSubset.__init__(self, data)
+
+#load_dataset_obj(0.7, 0.15, 0.15, os.path.expanduser("~/programming/machine_learning/tuberculosis_project/lira/lira1/data/samples.h5"), 6, data_normalization=True, lira_data=True)
