@@ -69,8 +69,9 @@ def get_data_subsets_lira(archive_dir, p_training=0.8, p_validation=0.1, p_test=
     individual_sub_samples = [data[0][whole_img_n:], data[1][whole_img_n:]]
 
     #Split these according to whole image, whole_image_n//subsection_n to get number of whole images
-    whole_img_samples[0] = np.split(whole_img_samples[0], whole_img_n//subsection_n)
-    whole_img_samples[1] = np.split(whole_img_samples[1], whole_img_n//subsection_n)
+    if whole_img_n != 0:
+        whole_img_samples[0] = np.split(whole_img_samples[0], whole_img_n//subsection_n)
+        whole_img_samples[1] = np.split(whole_img_samples[1], whole_img_n//subsection_n)
 
     #Create these beforehand
     training_data = [[], []]
