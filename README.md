@@ -1,4 +1,4 @@
-#Description
+# Description
 
 The code here is D.E.N.N.I.S. - Dark Element's Neural Networking Intelligent System,
 
@@ -6,11 +6,13 @@ A modular and efficient neural networking system to allow quick deploying of mod
 
 What started as simple experimentation with some code I obtained from [Michael Nielsen's awesome book on machine learning](http://neuralnetworksanddeeplearning.com/chap1.html), has since developed into my own system for deep learning in general. MK1 - MK4 were dedicated to speech recognition of a few of my spoken words, however I then started on an image recognition research project, with which I modified my already existing code for MK4. I made several improvements to Dennis there, and decided to avoid having a bunch of different repositories containing massive tracts of base deep learning code. From now until the foreseeable future, this is the parent, with the children being the applications to various deep learning projects. 
 
+With developments on my LIRA project (currently private until published), I have realized that it is far more efficient to create Keras-based independent models for independent deep-learning projects, instead of falling into [the generalization problem](https://xkcd.com/974/), as I have sorta done with this repo. I will probably halt development on this project, however I have still made use of many of the functions and work in this project's various files, and I hope others can find use in them as well. If anyone has any questions or comments about the functions or code in this repository, feel free to contact me!
+
 MK5 used Tensorflow, and now MK6 uses Keras.
 
 Note: If you ever want the data I used, contact me. I don't want to be like all the sources that keep their data private or at a price.
 
-##MK. 6 - Now with Keras!
+## MK. 6 - Now with Keras!
 
 While rewriting and upgrading DENNIS in theano and tensorflow, I realized I was spending too much time worried about **implementation** of algorithms, instead of **development and testing** of algorithms (the fun part). So instead of continuing the massive project of a modular and efficient machine learning library, I've given much of that worry to Keras, which was made by a much larger and more experienced group than I.
 
@@ -20,13 +22,13 @@ In summary,
 
 I will add in any features that I think are needed and useful, just as comparing multiple configurations at once was needed and useful; But with Keras I can also do far more without having to remake my entire project, such as setting up a Recurrent Neural Network instead of a Convolutional one.
 
-##MK. 5 - Now with Tensorflow!
+## MK. 5 - Now with Tensorflow!
 
 I am currently remodeling all of Dennis as I move him to Tensorflow, and thanks largely in part to the incredible Tensorflow library, he will be far more flexible, modular, and robust once this is complete. 
 
 I have also replaced CHO with his successor, [BBHO](https://github.com/DarkElement75/bbho). He will be used for optimizing Dennis for various projects from now on, as Bayesian Optimization of Machine Learning Algorithms is one of the best black box optimization strategies in the research field currently.
 
-##MK. 4 - Current Best Validation Accuracy = 91% 
+## MK. 4 - Current Best Validation Accuracy = 91% 
 
 Due to what I believe is largely a lack of sufficient data and also likely computational power(or an algorithm for generalization >= the brain's), I left MK. 3 and decided on the design for MK. 4.
 
@@ -65,8 +67,8 @@ Features to Add:
 2. CHO - I will be adding more efficient step ranges to minimize the amount of configs that must be run like a human would do
 3. Possibly experiment with different types of Fast Fourier Transforms outside of MFCCs
 
-##MK. 3
-####Current Results:
+## MK. 3
+#### Current Results:
 
 ![Current MK. 3 Results](/dennis3/comparisons/initial_setup2.png)
 
@@ -109,8 +111,8 @@ Features to add:
 6. Test scheduling now that accuracy is actually changing with reasonable intervals
 7. Improve automatic scheduling to work better with automation
 
-##MK. 2
-####Best Config:
+## MK. 2
+#### Best Config:
 
 With Hyper-Parameters of:
 
@@ -143,7 +145,7 @@ I decided to go to MK. 3 when implementing the entirely new data setup, so sever
 Due to some recently discovered bugs in the graphing part of things, I will not be including it since it is misleading. The results listed for MK. 2 are still accurate, however the graph would be misleading for the following reasons:
 
 
-##MK. 1
+## MK. 1
 The first (barely) functional version, took in raw audio spectrogram from total of 120 wav files containing either "dennis" or "play", and output the word given. With **extremely** basic functionality it obtained 67% accuracy, or a 33% margin of error. 
 
 These are results that already have been greatly improved upon in Mk. 2, which is good news considering the results were on the training data, not even the validation and test accuracies!
@@ -151,4 +153,4 @@ These are results that already have been greatly improved upon in Mk. 2, which i
 Used Fully connected sigmoid layers with 83968 inputs, 100 and 30 neurons in the two hidden layers, and 2 softmax outputs.
 
 
-##I'd like to thank Michael Nielsen for his [awesome book on machine learning](http://neuralnetworksanddeeplearning.com/chap1.html), and also for his [extremely helpful and well-written neural network and machine learning code](https://github.com/mnielsen/neural-networks-and-deep-learning/). I can't thank him enough for getting me started and for the resources he has provided to everyone.
+## I'd like to thank Michael Nielsen for his [awesome book on machine learning](http://neuralnetworksanddeeplearning.com/chap1.html), and also for his [extremely helpful and well-written neural network and machine learning code](https://github.com/mnielsen/neural-networks-and-deep-learning/). I can't thank him enough for getting me started and for the resources he has provided to everyone.
